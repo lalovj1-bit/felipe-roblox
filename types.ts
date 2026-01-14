@@ -1,7 +1,6 @@
-
 export interface Question {
   id: number;
-  mission: number; // 1 to 5
+  mission: number;
   text: string;
   options: string[];
   correctAnswer: string;
@@ -11,9 +10,10 @@ export interface Question {
 }
 
 export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
+export type GameScreen = 'intro' | 'mission_select' | 'playing' | 'game_over';
 
 export interface GameState {
-  gameStarted: boolean;
+  screen: GameScreen;
   activeMission: number;
   currentQuestionIndex: number; 
   userAnswer: string;
@@ -21,6 +21,5 @@ export interface GameState {
   score: number;
   feedbackType: FeedbackType;
   feedbackMessage: string;
-  isGameOver: boolean;
   showExplanation: boolean;
 }
