@@ -4,14 +4,14 @@ import { QUESTIONS } from './constants';
 import { GameState, Question } from './types';
 
 // --- HELPERS PARA AUDIO PCM ---
-const decodeBase64 = (base64: string) => {
+const decodeBase64 = (base64: string): Uint8Array => {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
   for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
   return bytes;
 };
 
-const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number) => {
+const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> => {
   const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.length / 2);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
@@ -67,9 +67,10 @@ const App: React.FC = () => {
 
   const initAudio = async () => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
     }
-    if (audioContextRef.current.state === 'suspended') {
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
       await audioContextRef.current.resume();
     }
     return audioContextRef.current;
@@ -77,10 +78,10 @@ const App: React.FC = () => {
 
   const playTTS = async (text: string) => {
     const ctx = await initAudio();
+    if (!ctx) return;
     setIsLoadingAudio(true);
     try {
-      // Usar process.env.API_KEY directamente, Vite se encarga del reemplazo
-      const apiKey = process.env.API_KEY || '';
+      const apiKey = (process.env as any).API_KEY || '';
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -110,7 +111,7 @@ const App: React.FC = () => {
     [state.activeMission]
   );
   
-  const currentQuestion = currentQuestions[state.currentQuestionIndex];
+  const currentQuestion = currentQuestions[state.currentQuestionIndex] || currentQuestions[0];
 
   const handleOptionClick = (option: string) => {
     if (state.showExplanation) return;
@@ -146,9 +147,9 @@ const App: React.FC = () => {
           <h1 className="text-6xl font-black italic tracking-tighter mb-4 neon-text text-white leading-none">
             FELIPE<br/><span className="text-lime-400">QUEST</span>
           </h1>
-          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-[0.4em] mb-12">Roblox_Dino_Engine v2.1</p>
+          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-[0.4em] mb-12">Roblox_Dino_Engine v2.1_FIXED</p>
           <button 
-            onClick={() => { initAudio(); setState(s => ({ ...s, gameStarted: true })); }}
+            onClick={() => { initAudio().then(() => setState(s => ({ ...s, gameStarted: true }))); }}
             className="w-full roblox-btn py-6 text-2xl"
           >
             INITIALIZE
@@ -174,7 +175,7 @@ const App: React.FC = () => {
       <main className="w-full max-w-xl voxel-card p-8 md:p-12 relative overflow-hidden">
         {state.isGameOver ? (
           <div className="text-center py-12">
-            <h2 className="text-4xl font-black text-lime-400 mb-8 italic">MISSION CLEAR!</h2>
+            <h2 className="text-4xl font-black text-lime-400 mb-8 italic">CORE MISSION CLEAR!</h2>
             <div className="text-9xl mb-12 animate-bounce">🦖</div>
             <button onClick={() => window.location.reload()} className="roblox-btn w-full py-6">RESTART_SYSTEM</button>
           </div>
@@ -183,7 +184,7 @@ const App: React.FC = () => {
             <div className="flex justify-between items-center mb-8">
               <span className="bg-black border border-cyan-400/50 text-cyan-400 px-3 py-1 rounded mono text-[10px]">TASK_{state.currentQuestionIndex + 1}</span>
               <div className="w-32 h-2 bg-slate-900 overflow-hidden">
-                <div className="h-full bg-cyan-400 transition-all duration-500" style={{ width: `${((state.currentQuestionIndex + 1) / currentQuestions.length) * 100}%` }}></div>
+                <div className="h-full bg-cyan-400 transition-all duration-500" style={{ width: `${((state.currentQuestionIndex + 1) / (currentQuestions.length || 1)) * 100}%` }}></div>
               </div>
             </div>
 
@@ -241,7 +242,7 @@ const App: React.FC = () => {
                   }}
                   className="w-full bg-black text-white py-4 font-black uppercase text-sm border-2 border-black"
                 >
-                  NEXT_OBJECTIVE >>
+                  NEXT_OBJECTIVE {" >>"}
                 </button>
               </div>
             )}
@@ -250,10 +251,8 @@ const App: React.FC = () => {
       </main>
 
       <footer className="mt-12 mono text-[9px] text-cyan-400/20 uppercase tracking-[0.5em] text-center">
-        Roblox_Dino_Core // build_ver_2.1.0_prod
+        Roblox_Dino_Core // build_ver_2.1.0_stable
       </footer>
     </div>
   );
 };
-
-export default App;
