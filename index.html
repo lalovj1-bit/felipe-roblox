@@ -4,11 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FELIPE QUEST - Roblox English Edition</title>
-    
-    <meta name="theme-color" content="#020617">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@300;500;700;800&display=swap" rel="stylesheet">
     <style>
@@ -18,27 +13,21 @@
             --roblox-pink: #f472b6;
             --roblox-dark: #020617;
         }
-
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: var(--roblox-dark);
-            background-image: 
-                linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+            background-image: linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
             background-size: 40px 40px;
             color: #f8fafc;
             min-height: 100vh;
-            overflow-x: hidden;
             margin: 0;
         }
-
         .voxel-card {
             background: rgba(15, 23, 42, 0.95);
             border: 4px solid #000;
             box-shadow: 8px 8px 0 rgba(34, 211, 238, 0.2);
             backdrop-filter: blur(10px);
         }
-
         .roblox-btn {
             background: var(--roblox-cyan);
             color: #000;
@@ -48,33 +37,9 @@
             text-transform: uppercase;
             transition: all 0.1s;
         }
-
-        .roblox-btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #0891b2;
-        }
-
-        .neon-text {
-            text-shadow: 0 0 10px var(--roblox-cyan), 0 0 20px rgba(34, 211, 238, 0.3);
-        }
-
-        @keyframes scan {
-            0% { transform: translateY(-100%); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(300%); opacity: 0; }
-        }
-
-        .scan-line {
-            width: 100%;
-            height: 4px;
-            background: var(--roblox-cyan);
-            box-shadow: 0 0 15px var(--roblox-cyan);
-            position: absolute;
-            animation: scan 3s linear infinite;
-        }
-
+        .roblox-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0891b2; }
+        .neon-text { text-shadow: 0 0 10px var(--roblox-cyan), 0 0 20px rgba(34, 211, 238, 0.3); }
         .mono { font-family: 'JetBrains Mono', monospace; }
-        ::-webkit-scrollbar { width: 0px; }
     </style>
 <script type="importmap">
 {
