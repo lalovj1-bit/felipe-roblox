@@ -81,7 +81,7 @@ const App: React.FC = () => {
     if (!ctx) return;
     setIsLoadingAudio(true);
     try {
-      const apiKey = (process.env as any).API_KEY || '';
+      const apiKey = process.env.API_KEY || '';
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -147,7 +147,7 @@ const App: React.FC = () => {
           <h1 className="text-6xl font-black italic tracking-tighter mb-4 neon-text text-white leading-none">
             FELIPE<br/><span className="text-lime-400">QUEST</span>
           </h1>
-          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-[0.4em] mb-12">Roblox_Dino_Engine v2.1_FIXED</p>
+          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-[0.4em] mb-12">Roblox_Dino_Engine v2.1_PROD</p>
           <button 
             onClick={() => { initAudio().then(() => setState(s => ({ ...s, gameStarted: true }))); }}
             className="w-full roblox-btn py-6 text-2xl"
@@ -242,7 +242,7 @@ const App: React.FC = () => {
                   }}
                   className="w-full bg-black text-white py-4 font-black uppercase text-sm border-2 border-black"
                 >
-                  NEXT_OBJECTIVE {" >>"}
+                  NEXT_OBJECTIVE &raquo;
                 </button>
               </div>
             )}
@@ -256,3 +256,5 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+export default App;
