@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { QUESTIONS } from './constants';
-import { GameState, Question, GameScreen } from './types';
+import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
+import { GameState, Question, GameScreen, ScrambleQuestion } from './types';
 
 // --- HELPERS DE AUDIO ---
 const decodeBase64 = (base64: string): Uint8Array => {
@@ -51,6 +51,8 @@ const App: React.FC = () => {
     feedbackMessage: '',
     showExplanation: false,
     syncProgress: 0,
+    scrambleWords: [],
+    selectedWords: [],
   });
 
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -65,29 +67,15 @@ const App: React.FC = () => {
     return audioContextRef.current;
   };
 
-  // Función para obtener audio (de caché, de URL o de Gemini)
-  const fetchAudioBuffer = async (question: Question): Promise<AudioBuffer | null> => {
+  const fetchAudioBuffer = async (text: string, id: number): Promise<AudioBuffer | null> => {
     const ctx = await initAudio();
-    
-    // 1. Check Cache
-    if (audioCache.current.has(question.id)) return audioCache.current.get(question.id)!;
-
+    if (audioCache.current.has(id)) return audioCache.current.get(id)!;
     try {
-      // 2. Check for Pre-set URL (Audios subidos con anticipación)
-      if (question.audioUrl) {
-        const response = await fetch(question.audioUrl);
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = await ctx.decodeAudioData(arrayBuffer);
-        audioCache.current.set(question.id, buffer);
-        return buffer;
-      }
-
-      // 3. Fallback to Gemini TTS
       const apiKey = (process.env as any).API_KEY || '';
       const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: question.text }] }],
+        contents: [{ parts: [{ text }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } } },
@@ -96,50 +84,80 @@ const App: React.FC = () => {
       const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64) {
         const buffer = await decodeAudioData(decodeBase64(base64), ctx, 24000, 1);
-        audioCache.current.set(question.id, buffer);
+        audioCache.current.set(id, buffer);
         return buffer;
       }
-    } catch (e) { console.error(`Error loading audio for Q${question.id}:`, e); }
+    } catch (e) { console.error(e); }
     return null;
   };
 
-  const playCachedAudio = async (questionId: number) => {
+  const playTTS = async (text: string, id: number) => {
     const ctx = await initAudio();
-    const buffer = audioCache.current.get(questionId);
+    const buffer = await fetchAudioBuffer(text, id);
     if (buffer) {
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
       source.start(0);
-    } else {
-      // Si no está en caché por alguna razón, intentamos cargarlo al vuelo
-      const q = QUESTIONS.find(q => q.id === questionId);
-      if (q) {
-        const freshBuffer = await fetchAudioBuffer(q);
-        if (freshBuffer) {
-           const source = ctx.createBufferSource();
-           source.buffer = freshBuffer;
-           source.connect(ctx.destination);
-           source.start(0);
-        }
-      }
     }
   };
 
   const startMissionSync = async (missionId: number) => {
     setState(s => ({ ...s, screen: 'syncing', activeMission: missionId, syncProgress: 0 }));
     const missionQuestions = QUESTIONS.filter(q => q.mission === missionId);
-    
     let loaded = 0;
     for (const q of missionQuestions) {
-      await fetchAudioBuffer(q);
+      await fetchAudioBuffer(q.text, q.id);
       loaded++;
       setState(s => ({ ...s, syncProgress: Math.round((loaded / missionQuestions.length) * 100) }));
-      // Pequeño delay para no saturar la API si se usa Gemini
-      if (!q.audioUrl) await new Promise(r => setTimeout(r, 300));
     }
-
     setState(s => ({ ...s, screen: 'playing', currentQuestionIndex: 0, score: 0, userAnswer: '', showExplanation: false }));
+  };
+
+  const startScrambleMode = () => {
+    setState(s => ({ 
+      ...s, 
+      screen: 'scramble', 
+      currentQuestionIndex: 0, 
+      score: 0, 
+      selectedWords: [],
+      showExplanation: false 
+    }));
+    setupScrambleQuestion(0);
+  };
+
+  const setupScrambleQuestion = (index: number) => {
+    const q = SCRAMBLE_QUESTIONS[index];
+    const words = q.sentence.split(' ');
+    const shuffled = [...words].sort(() => Math.random() - 0.5);
+    setState(s => ({ ...s, scrambleWords: shuffled, selectedWords: [], showExplanation: false }));
+  };
+
+  const handleWordClick = (word: string, index: number) => {
+    const newSelected = [...state.selectedWords, word];
+    const newScramble = state.scrambleWords.filter((_, i) => i !== index);
+    
+    setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: newScramble }));
+
+    const currentSentence = SCRAMBLE_QUESTIONS[state.currentQuestionIndex].sentence;
+    if (newSelected.join(' ') === currentSentence) {
+      setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
+      playTTS(currentSentence, SCRAMBLE_QUESTIONS[state.currentQuestionIndex].id);
+    } else if (newScramble.length === 0 && newSelected.join(' ') !== currentSentence) {
+      // Perdió, reiniciar esta pregunta
+      setTimeout(() => setupScrambleQuestion(state.currentQuestionIndex), 1000);
+    }
+  };
+
+  const handleOptionClick = (option: string) => {
+    if (state.showExplanation) return;
+    const currentQ = QUESTIONS.filter(q => q.mission === state.activeMission)[state.currentQuestionIndex];
+    const isCorrect = option === currentQ.correctAnswer;
+    if (isCorrect) {
+      setState(s => ({ ...s, userAnswer: option, score: s.score + 10, feedbackType: 'success', showExplanation: true }));
+    } else {
+      setState(s => ({ ...s, userAnswer: option, feedbackType: 'error', attempts: s.attempts + 1 }));
+    }
   };
 
   const missions = [
@@ -150,27 +168,6 @@ const App: React.FC = () => {
     { id: 5, title: "School", icon: "🎒", desc: "Books & Homework" }
   ];
 
-  const currentQuestions = useMemo(() => 
-    QUESTIONS.filter((q: Question) => q.mission === state.activeMission), 
-    [state.activeMission]
-  );
-  
-  const currentQuestion = currentQuestions[state.currentQuestionIndex] || currentQuestions[0];
-
-  const handleOptionClick = (option: string) => {
-    if (state.showExplanation) return;
-    const isCorrect = option === currentQuestion.correctAnswer;
-    if (isCorrect) {
-      setState(s => ({ ...s, userAnswer: option, score: s.score + 10, feedbackType: 'success', showExplanation: true }));
-      // TTS rápido para el feedback (al vuelo)
-      const feedback = new SpeechSynthesisUtterance(`Correct! ${option}`);
-      feedback.lang = 'en-US';
-      window.speechSynthesis.speak(feedback);
-    } else {
-      setState(s => ({ ...s, userAnswer: option, feedbackType: 'error', attempts: s.attempts + 1 }));
-    }
-  };
-
   // --- RENDERING ---
 
   if (state.screen === 'intro') {
@@ -179,7 +176,7 @@ const App: React.FC = () => {
         <div className="voxel-card p-12 max-w-md w-full text-center border-cyan-400/40 border-2">
           <VoxelFelipe isActive={false} />
           <h1 className="text-6xl font-black italic mb-4 neon-text text-white leading-none mt-8 text-center">FELIPE<br/><span className="text-lime-400">QUEST</span></h1>
-          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-widest mb-12">System_v2.8_Instant_Audio</p>
+          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-widest mb-12">System_v3.1_Sentence_Scramble</p>
           <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl">INITIALIZE</button>
         </div>
       </div>
@@ -189,8 +186,8 @@ const App: React.FC = () => {
   if (state.screen === 'mission_select') {
     return (
       <div className="min-h-screen p-6 max-w-4xl mx-auto flex flex-col items-center">
-        <h2 className="text-4xl font-black text-white italic mb-10 text-center neon-text uppercase tracking-tighter">Choose_Your_Story</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        <h2 className="text-4xl font-black text-white italic mb-10 text-center neon-text uppercase tracking-tighter">Mission_Database</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-12">
           {missions.map(m => (
             <button key={m.id} onClick={() => startMissionSync(m.id)} className="voxel-card p-6 text-left hover:scale-105 transition-all border-cyan-400/20 group hover:border-cyan-400">
               <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{m.icon}</div>
@@ -198,6 +195,20 @@ const App: React.FC = () => {
               <p className="mono text-[10px] text-slate-500 uppercase tracking-widest">{m.desc}</p>
             </button>
           ))}
+        </div>
+
+        <div className="w-full max-w-md">
+           <button 
+             onClick={startScrambleMode}
+             className="w-full bg-pink-500 border-4 border-black p-6 rounded-none flex items-center justify-between hover:bg-pink-400 transition-colors shadow-[8px_8px_0_#000]"
+           >
+             <div className="text-left">
+               <span className="mono text-[8px] text-black bg-white px-2 py-0.5 uppercase font-bold">New_Mode</span>
+               <h3 className="text-2xl font-black text-white uppercase italic">Sentence_Builder</h3>
+               <p className="text-[10px] text-pink-900 font-bold uppercase mono">Order the scattered words</p>
+             </div>
+             <span className="text-4xl">🧩</span>
+           </button>
         </div>
       </div>
     );
@@ -218,17 +229,89 @@ const App: React.FC = () => {
     );
   }
 
+  if (state.screen === 'scramble') {
+    const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
+    return (
+      <div className="min-h-screen flex flex-col items-center p-4">
+        <header className="w-full max-w-xl flex justify-between items-center mb-8">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-pink-400/50 hover:text-pink-400">{"[ ABORT_BUILD ]"}</button>
+          <div className="voxel-card px-4 py-2 bg-black/60 border-pink-500/50"><span className="text-xl font-black text-pink-400">XP: {state.score}</span></div>
+        </header>
+
+        <main className="w-full max-w-xl voxel-card p-8 border-pink-500 shadow-[8px_8px_0_rgba(244,114,182,0.2)]">
+          <div className="text-center mb-10">
+            <h2 className="text-xs mono text-pink-400 uppercase tracking-widest mb-2">Structure_Analysis_{state.currentQuestionIndex + 1}/10</h2>
+            <p className="text-lg font-bold text-white italic opacity-40">Build the sentence correctly!</p>
+          </div>
+
+          <div className="min-h-[120px] bg-black/50 border-2 border-dashed border-pink-500/30 p-4 mb-8 flex flex-wrap gap-2 items-center justify-center content-center rounded">
+            {state.selectedWords.map((word, i) => (
+              <span key={i} className="bg-pink-500 text-white font-black px-4 py-2 border-2 border-black uppercase text-sm animate-in zoom-in">
+                {word}
+              </span>
+            ))}
+            {state.selectedWords.length === 0 && <span className="mono text-[10px] text-pink-500/30 uppercase italic">Select blocks below...</span>}
+          </div>
+
+          <div className="flex flex-wrap gap-3 justify-center mb-12">
+            {state.scrambleWords.map((word, i) => (
+              <button
+                key={i}
+                onClick={() => handleWordClick(word, i)}
+                className="bg-white text-black font-black px-5 py-3 border-4 border-black shadow-[4px_4px_0_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all uppercase hover:bg-cyan-400"
+              >
+                {word}
+              </button>
+            ))}
+          </div>
+
+          {state.showExplanation && (
+            <div className="p-6 bg-lime-400 border-4 border-black text-black animate-in slide-in-from-bottom duration-500">
+              <h4 className="font-black text-xl italic uppercase mb-2">Build_Success!</h4>
+              <p className="text-2xl font-black mb-1 leading-tight">{currentQ.translation}</p>
+              <button 
+                onClick={() => {
+                  if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
+                    setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
+                    setupScrambleQuestion(state.currentQuestionIndex + 1);
+                  } else {
+                    setState(s => ({ ...s, screen: 'game_over' }));
+                  }
+                }}
+                className="w-full mt-6 bg-black text-white py-4 font-black uppercase text-sm border-2 border-black"
+              >
+                NEXT_STRUCTURE &raquo;
+              </button>
+            </div>
+          )}
+
+          {!state.showExplanation && state.selectedWords.length > 0 && (
+            <button 
+              onClick={() => setupScrambleQuestion(state.currentQuestionIndex)}
+              className="w-full py-2 mono text-[10px] text-pink-400/50 uppercase hover:text-pink-400"
+            >
+              [ RESET_BLOCKS ]
+            </button>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   if (state.screen === 'game_over') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="voxel-card p-12 text-center max-w-md w-full border-lime-400/40 border-2">
           <h2 className="text-5xl font-black text-lime-400 italic mb-4 uppercase">Mission_Success</h2>
-          <p className="text-3xl font-bold mb-8 text-white mono">XP_REWARD: {state.score}</p>
+          <p className="text-3xl font-bold mb-8 text-white mono">TOTAL_XP: {state.score}</p>
           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="roblox-btn w-full py-6 text-xl">GO_TO_LOBBY</button>
         </div>
       </div>
     );
   }
+
+  const currentMissionQuestions = QUESTIONS.filter(q => q.mission === state.activeMission);
+  const currentQ = currentMissionQuestions[state.currentQuestionIndex];
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
@@ -240,13 +323,15 @@ const App: React.FC = () => {
       <main className="w-full max-w-xl voxel-card p-8 relative">
         <div className="flex justify-between items-center mb-6">
           <span className="bg-black border border-cyan-400/50 text-cyan-400 px-3 py-1 rounded mono text-[10px]">OBJECTIVE_{state.currentQuestionIndex + 1}</span>
-          <div className="w-32 h-2 bg-slate-900 border border-white/10"><div className="h-full bg-cyan-400" style={{ width: `${((state.currentQuestionIndex + 1) / currentQuestions.length) * 100}%` }}></div></div>
+          <div className="w-32 h-2 bg-slate-900 border border-white/10">
+            <div className="h-full bg-cyan-400" style={{ width: `${((state.currentQuestionIndex + 1) / currentMissionQuestions.length) * 100}%` }}></div>
+          </div>
         </div>
 
         <div className="flex justify-center mb-6"><VoxelFelipe isActive={state.showExplanation} size="w-32 h-32" /></div>
 
         <h3 className="text-2xl font-bold text-white mb-8 text-center leading-relaxed">
-          {currentQuestion.text.split('________').map((part, i, arr) => (
+          {currentQ.text.split('________').map((part, i, arr) => (
             <React.Fragment key={i}>
               {part}{i < arr.length - 1 && <span className="text-pink-500 border-b-4 border-pink-500/40 px-2 mx-1">{state.userAnswer || "____"}</span>}
             </React.Fragment>
@@ -255,7 +340,7 @@ const App: React.FC = () => {
 
         <div className="flex justify-center mb-8">
            <button 
-             onClick={() => playCachedAudio(currentQuestion.id)}
+             onClick={() => playTTS(currentQ.text, currentQ.id)}
              className="bg-black border-2 border-cyan-400 text-cyan-400 px-6 py-2 rounded-full font-black uppercase text-xs hover:bg-cyan-400 hover:text-black transition-colors flex items-center gap-2"
            >
              🔊 Listen_Task
@@ -263,14 +348,14 @@ const App: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-3 mb-8">
-          {currentQuestion.options.map((opt, i) => (
+          {currentQ.options.map((opt, i) => (
             <button
               key={i}
               onClick={() => handleOptionClick(opt)}
               disabled={state.showExplanation}
               className={`p-4 border-4 font-black text-left transition-all uppercase tracking-tight text-lg ${
                 state.userAnswer === opt 
-                  ? (opt === currentQuestion.correctAnswer ? 'bg-lime-400 border-black text-black' : 'bg-red-500 border-black text-white scale-95') 
+                  ? (opt === currentQ.correctAnswer ? 'bg-lime-400 border-black text-black' : 'bg-red-500 border-black text-white scale-95') 
                   : 'bg-slate-900 border-black text-white hover:border-cyan-400 hover:translate-x-1'
               }`}
             >
@@ -282,11 +367,11 @@ const App: React.FC = () => {
         {state.showExplanation && (
           <div className="p-6 bg-lime-400 border-4 border-black text-black animate-in fade-in zoom-in duration-300">
             <h4 className="font-black text-xl italic uppercase mb-2">Code_Verified!</h4>
-            <p className="text-2xl font-black mb-1">{currentQuestion.translation}</p>
-            <p className="mono text-[10px] font-bold opacity-70 mb-6 uppercase leading-tight">"{currentQuestion.explanation}"</p>
+            <p className="text-2xl font-black mb-1">{currentQ.translation}</p>
+            <p className="mono text-[10px] font-bold opacity-70 mb-6 uppercase leading-tight">"{currentQ.explanation}"</p>
             <button 
               onClick={() => {
-                if (state.currentQuestionIndex + 1 < currentQuestions.length) {
+                if (state.currentQuestionIndex + 1 < currentMissionQuestions.length) {
                   setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, userAnswer: '', showExplanation: false }));
                 } else {
                   setState(s => ({ ...s, screen: 'game_over' }));
@@ -294,7 +379,7 @@ const App: React.FC = () => {
               }}
               className="w-full bg-black text-white py-4 font-black uppercase text-sm border-2 border-black active:scale-95 transition-transform"
             >
-              NEXT_DATA_PACK {" >>"}
+              NEXT_DATA_PACK &raquo;
             </button>
           </div>
         )}
@@ -303,5 +388,3 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-export default App;
