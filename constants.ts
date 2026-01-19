@@ -1,4 +1,17 @@
-import { Question } from './types';
+import { Question, ScrambleQuestion } from './types';
+
+export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
+  { id: 101, sentence: "I love playing video games with friends", translation: "Amo jugar videojuegos con amigos" },
+  { id: 102, sentence: "My smartphone has a very good camera", translation: "Mi teléfono tiene una muy buena cámara" },
+  { id: 103, sentence: "I use a keyboard to type fast", translation: "Uso un teclado para escribir rápido" },
+  { id: 104, sentence: "Can you help me with my homework", translation: "¿Puedes ayudarme con mi tarea?" },
+  { id: 105, sentence: "The robot is flying to the moon", translation: "El robot está volando a la luna" },
+  { id: 106, sentence: "I ride my skateboard in the park", translation: "Monto mi patineta en el parque" },
+  { id: 107, sentence: "Do you want to play online tonight", translation: "¿Quieres jugar en línea esta noche?" },
+  { id: 108, sentence: "My teacher is very nice and funny", translation: "Mi profesor es muy amable y divertido" },
+  { id: 109, sentence: "I have a new laptop for school", translation: "Tengo una laptop nueva para la escuela" },
+  { id: 110, sentence: "Put your books in your backpack now", translation: "Pon tus libros en tu mochila ahora" }
+];
 
 export const QUESTIONS: Question[] = [
   // MISIÓN 1: DIGITAL LIFE & GAMING
