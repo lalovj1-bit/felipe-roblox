@@ -7,11 +7,17 @@ export interface Question {
   hint: string;
   explanation: string;
   translation: string;
-  audioUrl?: string; // Campo opcional para audios pre-cargados (locales o remotos)
+  audioUrl?: string;
+}
+
+export interface ScrambleQuestion {
+  id: number;
+  sentence: string;
+  translation: string;
 }
 
 export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
-export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'game_over';
+export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'scramble' | 'game_over';
 
 export interface GameState {
   screen: GameScreen;
@@ -23,5 +29,7 @@ export interface GameState {
   feedbackType: FeedbackType;
   feedbackMessage: string;
   showExplanation: boolean;
-  syncProgress: number; // Progreso de carga de audios (0-100)
+  syncProgress: number;
+  scrambleWords: string[];
+  selectedWords: string[];
 }
