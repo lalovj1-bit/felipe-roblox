@@ -1,10 +1,10 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
-import { GameState, Question, GameScreen } from './types';
+import { GameState, GameScreen } from './types';
 
-// --- HELPERS DE AUDIO SEGÚN GUÍAS ---
-function decode(base64: string) {
+// --- HELPERS DE AUDIO ---
+function decode(base64: string): Uint8Array {
   const binaryString = window.atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
@@ -48,7 +48,7 @@ const VoxelFelipe = ({ isActive, size = "w-48 h-48" }: { isActive: boolean, size
   </div>
 );
 
-const App: React.FC = () => {
+export default function App() {
   const [state, setState] = useState<GameState>({
     screen: 'intro',
     activeMission: 1,
@@ -69,7 +69,7 @@ const App: React.FC = () => {
 
   const initAudio = async () => {
     if (!audioContextRef.current) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
       audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
     }
     if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
@@ -362,4 +362,4 @@ const App: React.FC = () => {
       <footer className="mt-8 mono text-[8px] text-white/20 uppercase tracking-[0.5em]">Roblox_Engine_A1_FelipeQuest</footer>
     </div>
   );
-};
+}
