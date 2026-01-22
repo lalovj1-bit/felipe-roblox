@@ -16,7 +16,7 @@
         }
         body {
             font-family: 'Space Grotesk', sans-serif;
-            background-color: #bae6fd; /* Azul cielo claro */
+            background-color: #bae6fd; 
             background-image: 
                 radial-gradient(circle at 20% 20%, rgba(253, 224, 71, 0.15) 0%, transparent 25%),
                 linear-gradient(rgba(255, 255, 255, 0.3) 1px, transparent 1px), 
@@ -25,6 +25,7 @@
             color: #0c4a6e;
             min-height: 100vh;
             margin: 0;
+            overflow-x: hidden;
         }
         .voxel-card {
             background: rgba(255, 255, 255, 0.9);
@@ -43,10 +44,30 @@
             transition: all 0.1s;
         }
         .roblox-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #ca8a04; }
-        .neon-text { text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.8); }
-        .mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* Felipe Dinosaur voxel tweak for bright mode */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+        @keyframes sun-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes wave {
+            0%, 100% { transform: translateX(-5%) translateY(0); }
+            50% { transform: translateX(5%) translateY(5px); }
+        }
+        @keyframes text-wave {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-sun { animation: sun-rotate 20s linear infinite; }
+        .animate-wave { animation: wave 4s ease-in-out infinite; }
+        .animate-text-wave { animation: text-wave 2s ease-in-out infinite; }
+        
+        .mono { font-family: 'JetBrains Mono', monospace; }
         .felipe-bg {
             background: radial-gradient(circle, #fde047 0%, transparent 70%);
             opacity: 0.4;
