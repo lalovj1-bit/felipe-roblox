@@ -33,6 +33,51 @@ async function decodeAudioData(
   return buffer;
 }
 
+const VacationFelipeLogo = () => (
+  <div className="relative w-64 h-64 flex items-center justify-center mb-4">
+    {/* Sol de fondo giratorio */}
+    <div className="absolute inset-0 animate-sun opacity-60">
+      <svg viewBox="0 0 100 100" className="w-full h-full text-sunny-yellow fill-current">
+        <circle cx="50" cy="50" r="20" />
+        {[...Array(12)].map((_, i) => (
+          <rect key={i} x="48" y="10" width="4" height="15" transform={`rotate(${i * 30} 50 50)`} rx="2" />
+        ))}
+      </svg>
+    </div>
+    
+    {/* Felipe en el flotador con animación de balanceo */}
+    <div className="relative animate-float">
+      {/* Flotador (Donut) */}
+      <svg viewBox="0 0 100 100" className="w-48 h-48 drop-shadow-xl">
+        <ellipse cx="50" cy="75" rx="40" ry="15" fill="#f472b6" stroke="#0c4a6e" strokeWidth="3" />
+        <ellipse cx="50" cy="75" rx="15" ry="6" fill="#bae6fd" stroke="#0c4a6e" strokeWidth="2" />
+        
+        {/* Felipe con gafas de sol */}
+        <g transform="translate(10, -5)">
+          <rect x="35" y="15" width="40" height="30" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
+          <rect x="30" y="25" width="50" height="15" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
+          {/* Gafas de sol */}
+          <rect x="40" y="28" width="12" height="8" fill="#000" rx="1" />
+          <rect x="58" y="28" width="12" height="8" fill="#000" rx="1" />
+          <rect x="52" y="31" width="6" height="2" fill="#000" />
+          
+          <rect x="25" y="45" width="35" height="40" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
+          {/* Bebida tropical */}
+          <rect x="20" y="45" width="8" height="12" fill="#fb923c" stroke="#0c4a6e" strokeWidth="1" />
+          <line x1="24" y1="45" x2="24" y2="38" stroke="#0c4a6e" strokeWidth="1" />
+        </g>
+      </svg>
+    </div>
+    
+    {/* Olas decorativas en la base */}
+    <div className="absolute bottom-4 w-full flex justify-center gap-1 animate-wave">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-1 w-8 bg-sky-400 rounded-full opacity-60"></div>
+      ))}
+    </div>
+  </div>
+);
+
 const VoxelFelipe = ({ isActive, size = "w-48 h-48" }: { isActive: boolean, size?: string }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
     <div className="absolute inset-0 felipe-bg blur-[60px] rounded-full"></div>
@@ -193,11 +238,16 @@ export default function App() {
   if (state.screen === 'intro') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4">
-          <VoxelFelipe isActive={false} />
-          <h1 className="text-5xl font-black italic mb-2 text-sky-600 leading-none mt-8 text-center uppercase">SUMMER<br/><span className="text-summer-orange">QUEST</span></h1>
-          <p className="mono text-[10px] text-sky-800 uppercase tracking-widest mb-12 font-bold">A1_Vacation_Exp_v4.0</p>
-          <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl shadow-[0_6px_0_#ca8a04]">START VACATION</button>
+        <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4 overflow-hidden">
+          <VacationFelipeLogo />
+          <h1 className="text-6xl font-black italic mb-2 text-sky-600 leading-none text-center uppercase tracking-tighter animate-text-wave">
+            FELIPE<br/>
+            <span className="text-summer-orange">QUEST</span>
+          </h1>
+          <p className="mono text-[10px] text-sky-800 uppercase tracking-widest mb-12 font-bold">Summer_Vacation_Adventure_v5</p>
+          <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl shadow-[0_6px_0_#ca8a04]">
+            RESERVANDO VIAJE...
+          </button>
         </div>
       </div>
     );
@@ -359,7 +409,7 @@ export default function App() {
           </div>
         )}
       </main>
-      <footer className="mt-8 mono text-[8px] text-sky-900/20 uppercase tracking-[0.5em] font-black">Summer_Edition_Roblox_v4</footer>
+      <footer className="mt-8 mono text-[8px] text-sky-900/20 uppercase tracking-[0.5em] font-black">Summer_Edition_Roblox_v5</footer>
     </div>
   );
 }
