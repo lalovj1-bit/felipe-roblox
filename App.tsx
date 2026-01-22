@@ -35,14 +35,14 @@ async function decodeAudioData(
 
 const VoxelFelipe = ({ isActive, size = "w-48 h-48" }: { isActive: boolean, size?: string }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
-    <div className="absolute inset-0 bg-cyan-400/10 blur-[60px] rounded-full"></div>
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]">
-      <rect x="35" y="15" width="40" height="30" fill="#a3e635" stroke="#000" strokeWidth="2" />
-      <rect x="30" y="25" width="50" height="15" fill="#a3e635" stroke="#000" strokeWidth="2" />
+    <div className="absolute inset-0 felipe-bg blur-[60px] rounded-full"></div>
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(12,74,110,0.3)]">
+      <rect x="35" y="15" width="40" height="30" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
+      <rect x="30" y="25" width="50" height="15" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
       <rect x="65" y="25" width="8" height="8" fill="#000" />
-      <rect x="25" y="45" width="35" height="40" fill="#a3e635" stroke="#000" strokeWidth="2" />
-      <rect x="32" y="10" width="8" height="35" fill="#22d3ee" stroke="#000" strokeWidth="2" />
-      <rect x="32" y="10" width="25" height="6" fill="#22d3ee" stroke="#000" strokeWidth="2" />
+      <rect x="25" y="45" width="35" height="40" fill="#a3e635" stroke="#0c4a6e" strokeWidth="2" />
+      <rect x="32" y="10" width="8" height="35" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
+      <rect x="32" y="10" width="25" height="6" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
       <rect x="34" y="30" width="4" height="6" fill="#f472b6" className={isActive ? "animate-pulse" : ""} />
     </svg>
   </div>
@@ -183,21 +183,21 @@ export default function App() {
   };
 
   const missions = [
-    { id: 1, title: "Digital Life", icon: "🌐", desc: "Gaming & Internet" },
-    { id: 2, title: "Gadgets", icon: "📱", desc: "Tech & Phones" },
-    { id: 3, title: "Urban Style", icon: "🛹", desc: "Clothing & City" },
-    { id: 4, title: "Space", icon: "🚀", desc: "Aliens & Rockets" },
-    { id: 5, title: "School", icon: "🎒", desc: "Books & Homework" }
+    { id: 1, title: "Beach Party", icon: "🏖️", desc: "Sun, Sand & Waves" },
+    { id: 2, title: "Nature Cam", icon: "🏕️", desc: "Forest & Stars" },
+    { id: 3, title: "Fly High", icon: "✈️", desc: "Airport & Travel" },
+    { id: 4, title: "Magic Park", icon: "🎡", desc: "Rollercoasters" },
+    { id: 5, title: "City Tour", icon: "🍦", desc: "Museums & Fun" }
   ];
 
   if (state.screen === 'intro') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="voxel-card p-12 max-w-md w-full text-center border-cyan-400/40 border-2">
+        <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4">
           <VoxelFelipe isActive={false} />
-          <h1 className="text-6xl font-black italic mb-4 neon-text text-white leading-none mt-8 text-center">FELIPE<br/><span className="text-lime-400">QUEST</span></h1>
-          <p className="mono text-[10px] text-cyan-400/60 uppercase tracking-widest mb-12">System_v3.2_Ready</p>
-          <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl">INITIALIZE</button>
+          <h1 className="text-5xl font-black italic mb-2 text-sky-600 leading-none mt-8 text-center uppercase">SUMMER<br/><span className="text-summer-orange">QUEST</span></h1>
+          <p className="mono text-[10px] text-sky-800 uppercase tracking-widest mb-12 font-bold">A1_Vacation_Exp_v4.0</p>
+          <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl shadow-[0_6px_0_#ca8a04]">START VACATION</button>
         </div>
       </div>
     );
@@ -206,22 +206,22 @@ export default function App() {
   if (state.screen === 'mission_select') {
     return (
       <div className="min-h-screen p-6 max-w-4xl mx-auto flex flex-col items-center">
-        <h2 className="text-4xl font-black text-white italic mb-10 text-center neon-text uppercase tracking-tighter">Mission_Database</h2>
+        <h2 className="text-4xl font-black text-sky-900 italic mb-10 text-center uppercase tracking-tighter">Choose_Your_Trip</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-12">
           {missions.map(m => (
-            <button key={m.id} onClick={() => startMissionSync(m.id)} className="voxel-card p-6 text-left hover:scale-105 transition-all border-cyan-400/20 group hover:border-cyan-400">
+            <button key={m.id} onClick={() => startMissionSync(m.id)} className="voxel-card p-6 text-left hover:scale-105 transition-all group hover:border-summer-orange bg-white/80">
               <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{m.icon}</div>
-              <h3 className="text-xl font-black text-cyan-400 group-hover:text-white uppercase">{m.title}</h3>
-              <p className="mono text-[10px] text-slate-500 uppercase tracking-widest">{m.desc}</p>
+              <h3 className="text-xl font-black text-sky-700 group-hover:text-summer-orange uppercase">{m.title}</h3>
+              <p className="mono text-[10px] text-sky-400 uppercase tracking-widest font-bold">{m.desc}</p>
             </button>
           ))}
         </div>
         <div className="w-full max-w-md">
-           <button onClick={startScrambleMode} className="w-full bg-pink-500 border-4 border-black p-6 rounded-none flex items-center justify-between hover:bg-pink-400 transition-colors shadow-[8px_8px_0_#000]">
+           <button onClick={startScrambleMode} className="w-full bg-summer-orange border-4 border-sky-900 p-6 rounded-none flex items-center justify-between hover:bg-orange-400 transition-colors shadow-[8px_8px_0_#0c4a6e]">
              <div className="text-left">
-               <span className="mono text-[8px] text-black bg-white px-2 py-0.5 uppercase font-bold">New_Mode</span>
-               <h3 className="text-2xl font-black text-white uppercase italic">Sentence_Builder</h3>
-               <p className="text-[10px] text-pink-900 font-bold uppercase mono">Order the scattered blocks</p>
+               <span className="mono text-[8px] text-white bg-sky-900 px-2 py-0.5 uppercase font-bold">Fun_Challenge</span>
+               <h3 className="text-2xl font-black text-white uppercase italic">Summer_Builder</h3>
+               <p className="text-[10px] text-orange-900 font-bold uppercase mono">Order the travel blocks</p>
              </div>
              <span className="text-4xl">🧩</span>
            </button>
@@ -232,14 +232,14 @@ export default function App() {
 
   if (state.screen === 'syncing') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-black">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          <div className="flex justify-center mb-8 animate-pulse"><VoxelFelipe isActive={true} size="w-32 h-32" /></div>
-          <h2 className="mono text-cyan-400 text-xs uppercase tracking-[0.5em] mb-4 text-center">Syncing_Voice_Data</h2>
-          <div className="w-full h-4 bg-slate-900 border-2 border-cyan-400/20 rounded-full overflow-hidden mb-4">
-             <div className="h-full bg-cyan-400 transition-all duration-300 shadow-[0_0_10px_#22d3ee]" style={{ width: `${state.syncProgress}%` }}></div>
+          <div className="flex justify-center mb-8 animate-bounce"><VoxelFelipe isActive={true} size="w-32 h-32" /></div>
+          <h2 className="mono text-sky-900 text-xs uppercase tracking-[0.5em] mb-4 text-center font-black">Loading_Trip_Data...</h2>
+          <div className="w-full h-4 bg-sky-200 border-2 border-sky-900 rounded-full overflow-hidden mb-4">
+             <div className="h-full bg-summer-orange transition-all duration-300 shadow-[0_0_10px_#fb923c]" style={{ width: `${state.syncProgress}%` }}></div>
           </div>
-          <p className="text-center font-black text-white text-3xl italic">{state.syncProgress}%</p>
+          <p className="text-center font-black text-sky-900 text-3xl italic">{state.syncProgress}%</p>
         </div>
       </div>
     );
@@ -251,29 +251,29 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col items-center p-4">
         <header className="w-full max-w-xl flex justify-between items-center mb-8">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-pink-400/50 hover:text-pink-400">{"[ ABORT_BUILD ]"}</button>
-          <div className="voxel-card px-4 py-2 bg-black/60 border-pink-500/50"><span className="text-xl font-black text-pink-400">XP: {state.score}</span></div>
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-sky-900/50 hover:text-sky-900 font-bold">{"[ CANCEL_TRIP ]"}</button>
+          <div className="voxel-card px-4 py-2 bg-white/60 border-summer-orange"><span className="text-xl font-black text-summer-orange">XP: {state.score}</span></div>
         </header>
-        <main className="w-full max-w-xl voxel-card p-8 border-pink-500 shadow-[8px_8px_0_rgba(244,114,182,0.2)]">
+        <main className="w-full max-w-xl voxel-card p-8 border-summer-orange shadow-[8px_8px_0_rgba(251,146,60,0.2)]">
           <div className="text-center mb-6">
-            <h2 className="text-xs mono text-pink-400 uppercase tracking-widest mb-2">Structure_Analysis_{state.currentQuestionIndex + 1}/10</h2>
+            <h2 className="text-xs mono text-summer-orange uppercase tracking-widest mb-2 font-black">Building_Sentence_{state.currentQuestionIndex + 1}/10</h2>
             <div className="flex justify-center mb-4"><VoxelFelipe isActive={state.showExplanation} size="w-24 h-24" /></div>
           </div>
-          <div className="min-h-[140px] bg-black/50 border-2 border-dashed border-pink-500/30 p-4 mb-8 flex flex-wrap gap-2 items-center justify-center content-center rounded">
+          <div className="min-h-[140px] bg-sky-50 border-2 border-dashed border-summer-orange/30 p-4 mb-8 flex flex-wrap gap-2 items-center justify-center content-center rounded">
             {state.selectedWords.map((word, i) => (
-              <span key={i} className="bg-pink-500 text-white font-black px-4 py-2 border-2 border-black uppercase text-sm animate-in zoom-in shadow-[2px_2px_0_#000]">{word}</span>
+              <span key={i} className="bg-summer-orange text-white font-black px-4 py-2 border-2 border-sky-900 uppercase text-sm animate-in zoom-in shadow-[2px_2px_0_#0c4a6e]">{word}</span>
             ))}
-            {state.selectedWords.length === 0 && <span className="mono text-[10px] text-pink-500/30 uppercase italic">Tap blocks to start building...</span>}
+            {state.selectedWords.length === 0 && <span className="mono text-[10px] text-sky-900/30 uppercase italic font-bold">Pick blocks to build...</span>}
           </div>
           <div className="flex flex-wrap gap-3 justify-center mb-12">
             {state.scrambleWords.map((word, i) => (
-              <button key={i} onClick={() => handleWordClick(word, i)} className="bg-white text-black font-black px-5 py-3 border-4 border-black shadow-[4px_4px_0_#000] active:translate-x-1 active:translate-y-1 transition-all uppercase hover:bg-cyan-400 text-sm md:text-base">
+              <button key={i} onClick={() => handleWordClick(word, i)} className="bg-white text-sky-900 font-black px-5 py-3 border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] active:translate-x-1 active:translate-y-1 transition-all uppercase hover:bg-sunny-yellow text-sm md:text-base">
                 {word}
               </button>
             ))}
           </div>
           {state.showExplanation && (
-            <div className="p-6 bg-lime-400 border-4 border-black text-black animate-in slide-in-from-bottom duration-500">
+            <div className="p-6 bg-tropical-green border-4 border-sky-900 text-sky-900 animate-in slide-in-from-bottom duration-500">
               <h4 className="font-black text-xl italic uppercase mb-2">Build_Success!</h4>
               <p className="text-2xl font-black mb-1 leading-tight">{currentQ.translation}</p>
               <button onClick={() => {
@@ -282,11 +282,11 @@ export default function App() {
                   } else {
                     setState(s => ({ ...s, screen: 'game_over' }));
                   }
-                }} className="w-full mt-6 bg-black text-white py-4 font-black uppercase text-sm border-2 border-black">NEXT_STRUCTURE &raquo;</button>
+                }} className="w-full mt-6 bg-sky-900 text-white py-4 font-black uppercase text-sm border-2 border-sky-900">NEXT_LEVEL &raquo;</button>
             </div>
           )}
           {!state.showExplanation && state.selectedWords.length > 0 && (
-            <button onClick={() => setupScrambleQuestion(state.currentQuestionIndex)} className="w-full py-2 mono text-[10px] text-pink-400/50 uppercase hover:text-pink-400">[ RESET_BLOCKS ]</button>
+            <button onClick={() => setupScrambleQuestion(state.currentQuestionIndex)} className="w-full py-2 mono text-[10px] text-sky-900/50 uppercase hover:text-sky-900 font-bold">[ RESET_BLOCKS ]</button>
           )}
         </main>
       </div>
@@ -296,10 +296,10 @@ export default function App() {
   if (state.screen === 'game_over') {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="voxel-card p-12 text-center max-w-md w-full border-lime-400/40 border-2">
-          <h2 className="text-5xl font-black text-lime-400 italic mb-4 uppercase">Mission_Success</h2>
-          <p className="text-3xl font-bold mb-8 text-white mono">TOTAL_XP: {state.score}</p>
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="roblox-btn w-full py-6 text-xl">GO_TO_LOBBY</button>
+        <div className="voxel-card p-12 text-center max-w-md w-full border-tropical-green border-4 bg-white">
+          <h2 className="text-5xl font-black text-tropical-green italic mb-4 uppercase">Trip_Complete!</h2>
+          <p className="text-3xl font-bold mb-8 text-sky-900 mono">XP_EARNED: {state.score}</p>
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="roblox-btn w-full py-6 text-xl">LOBBY_MENU</button>
         </div>
       </div>
     );
@@ -312,41 +312,41 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
       <header className="w-full max-w-xl flex justify-between items-center mb-8">
-        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-cyan-400/50 hover:text-cyan-400">{"[ EXIT_TERMINAL ]"}</button>
-        <div className="voxel-card px-4 py-2 bg-black/60"><span className="text-xl font-black text-white">SCORE: {state.score}</span></div>
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-sky-900/50 hover:text-sky-900 font-bold">{"[ EXIT_TRIP ]"}</button>
+        <div className="voxel-card px-4 py-2 bg-white/60"><span className="text-xl font-black text-sky-900">SCORE: {state.score}</span></div>
       </header>
       <main className="w-full max-w-xl voxel-card p-8 relative">
         <div className="flex justify-between items-center mb-6">
-          <span className="bg-black border border-cyan-400/50 text-cyan-400 px-3 py-1 rounded mono text-[10px]">OBJECTIVE_{state.currentQuestionIndex + 1}</span>
-          <div className="w-32 h-2 bg-slate-900 border border-white/10">
-            <div className="h-full bg-cyan-400" style={{ width: `${((state.currentQuestionIndex + 1) / currentMissionQs.length) * 100}%` }}></div>
+          <span className="bg-sky-900 text-white px-3 py-1 rounded mono text-[10px] font-black uppercase">Mission_{state.currentQuestionIndex + 1}</span>
+          <div className="w-32 h-2 bg-sky-100 border border-sky-900/20">
+            <div className="h-full bg-summer-orange" style={{ width: `${((state.currentQuestionIndex + 1) / currentMissionQs.length) * 100}%` }}></div>
           </div>
         </div>
         <div className="flex justify-center mb-6"><VoxelFelipe isActive={state.showExplanation} size="w-32 h-32" /></div>
-        <h3 className="text-2xl font-bold text-white mb-8 text-center leading-relaxed">
+        <h3 className="text-2xl font-bold text-sky-900 mb-8 text-center leading-relaxed">
           {currentQ.text.split('________').map((part, i, arr) => (
             <React.Fragment key={i}>
-              {part}{i < arr.length - 1 && <span className="text-pink-500 border-b-4 border-pink-500/40 px-2 mx-1">{state.userAnswer || "____"}</span>}
+              {part}{i < arr.length - 1 && <span className="text-summer-orange border-b-4 border-summer-orange/40 px-2 mx-1 font-black">{state.userAnswer || "____"}</span>}
             </React.Fragment>
           ))}
         </h3>
         <div className="flex justify-center mb-8">
-           <button onClick={() => playTTS(currentQ.text, currentQ.id)} className="bg-black border-2 border-cyan-400 text-cyan-400 px-6 py-2 rounded-full font-black uppercase text-xs hover:bg-cyan-400 hover:text-black transition-colors flex items-center gap-2">🔊 Listen_Task</button>
+           <button onClick={() => playTTS(currentQ.text, currentQ.id)} className="bg-white border-2 border-sky-900 text-sky-900 px-6 py-2 rounded-full font-black uppercase text-xs hover:bg-sky-900 hover:text-white transition-colors flex items-center gap-2">🔊 Play_Audio</button>
         </div>
         <div className="grid grid-cols-1 gap-3 mb-8">
           {currentQ.options.map((opt, i) => (
             <button key={i} onClick={() => handleOptionClick(opt)} disabled={state.showExplanation} className={`p-4 border-4 font-black text-left transition-all uppercase text-lg ${
                 state.userAnswer === opt 
-                  ? (opt === currentQ.correctAnswer ? 'bg-lime-400 border-black text-black' : 'bg-red-500 border-black text-white scale-95') 
-                  : 'bg-slate-900 border-black text-white hover:border-cyan-400 hover:translate-x-1'
+                  ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900 text-sky-900' : 'bg-red-500 border-sky-900 text-white scale-95') 
+                  : 'bg-white border-sky-900 text-sky-900 hover:border-summer-orange hover:translate-x-1'
               }`}>
-              <span className="mono opacity-20 mr-4">CMD_0{i+1}</span> {opt}
+              <span className="mono opacity-20 mr-4">0{i+1}</span> {opt}
             </button>
           ))}
         </div>
         {state.showExplanation && (
-          <div className="p-6 bg-lime-400 border-4 border-black text-black animate-in fade-in zoom-in duration-300">
-            <h4 className="font-black text-xl italic uppercase mb-2">Code_Verified!</h4>
+          <div className="p-6 bg-sunny-yellow border-4 border-sky-900 text-sky-900 animate-in fade-in zoom-in duration-300">
+            <h4 className="font-black text-xl italic uppercase mb-2">Correct!</h4>
             <p className="text-2xl font-black mb-1">{currentQ.translation}</p>
             <p className="mono text-[10px] font-bold opacity-70 mb-6 uppercase">"{currentQ.explanation}"</p>
             <button onClick={() => {
@@ -355,11 +355,11 @@ export default function App() {
                 } else {
                   setState(s => ({ ...s, screen: 'game_over' }));
                 }
-              }} className="w-full bg-black text-white py-4 font-black uppercase text-sm border-2 border-black active:scale-95 transition-transform">NEXT_DATA_PACK &raquo;</button>
+              }} className="w-full bg-sky-900 text-white py-4 font-black uppercase text-sm border-2 border-sky-900 active:scale-95 transition-transform">CONTINUE_TRIP &raquo;</button>
           </div>
         )}
       </main>
-      <footer className="mt-8 mono text-[8px] text-white/20 uppercase tracking-[0.5em]">Roblox_Engine_A1_FelipeQuest</footer>
+      <footer className="mt-8 mono text-[8px] text-sky-900/20 uppercase tracking-[0.5em] font-black">Summer_Edition_Roblox_v4</footer>
     </div>
   );
 }
