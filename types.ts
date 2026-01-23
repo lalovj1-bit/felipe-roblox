@@ -1,4 +1,5 @@
 
+
 export interface Question {
   id: number;
   mission: number;
@@ -11,6 +12,7 @@ export interface Question {
   audioUrl?: string;
 }
 
+// Added ScrambleQuestion interface
 export interface ScrambleQuestion {
   id: number;
   sentence: string;
@@ -18,7 +20,9 @@ export interface ScrambleQuestion {
 }
 
 export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
-export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'scramble' | 'game_over' | 'passport';
+export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'game_over' | 'passport';
+
+export type Accessory = 'none' | 'sunglasses' | 'safari_hat' | 'pilot_headset' | 'party_ears' | 'camera';
 
 export interface GameState {
   screen: GameScreen;
@@ -31,10 +35,11 @@ export interface GameState {
   feedbackMessage: string;
   showExplanation: boolean;
   syncProgress: number;
-  scrambleWords: string[];
-  selectedWords: string[];
   stamps: number[]; 
-  postcards: Record<number, string>; // Mapa de misión ID -> URL de imagen
+  postcards: Record<number, string>; 
+  diaries: Record<number, string>; // Entradas de diario generadas por IA
   isGeneratingPostcard: boolean;
   viewingPostcardId?: number;
+  equippedAccessory: Accessory;
+  unlockedAccessories: Accessory[];
 }
