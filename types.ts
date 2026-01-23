@@ -17,7 +17,7 @@ export interface ScrambleQuestion {
 }
 
 export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
-export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'scramble' | 'game_over';
+export type GameScreen = 'intro' | 'mission_select' | 'syncing' | 'playing' | 'scramble' | 'game_over' | 'passport';
 
 export interface GameState {
   screen: GameScreen;
@@ -32,4 +32,7 @@ export interface GameState {
   syncProgress: number;
   scrambleWords: string[];
   selectedWords: string[];
+  stamps: number[]; // IDs de misiones completadas
+  lastPostcardUrl?: string;
+  isGeneratingPostcard: boolean;
 }
