@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
-import { GameState, GameScreen } from './types';
+import { GameState } from './types';
 
 // --- HELPERS DE AUDIO ---
 function decode(base64: string): Uint8Array {
@@ -99,6 +99,7 @@ export default function App() {
     scrambleWords: [],
     selectedWords: [],
     stamps: [],
+    postcards: {},
     isGeneratingPostcard: false
   });
 
@@ -114,6 +115,29 @@ export default function App() {
       await audioContextRef.current.resume();
     }
     return audioContextRef.current;
+  };
+
+  const playSystemSound = async (type: 'success' | 'error') => {
+    const ctx = await initAudio();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    if (type === 'success') {
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    } else {
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    }
+    osc.start();
+    osc.stop(ctx.currentTime + 0.3);
   };
 
   const fetchAudioBuffer = async (text: string, id: number): Promise<AudioBuffer | null> => {
@@ -147,11 +171,11 @@ export default function App() {
     return null;
   };
 
-  const generateAIPostcard = async (missionTitle: string) => {
-    setState(s => ({ ...s, isGeneratingPostcard: true, lastPostcardUrl: undefined }));
+  const generateAIPostcard = async (missionId: number, missionTitle: string) => {
+    setState(s => ({ ...s, isGeneratingPostcard: true }));
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const prompt = `A cute voxel-style dinosaur (Felipe) having fun in a ${missionTitle} vacation setting. Bright 3D voxel art, high resolution, colorful, happy vibes, summer style, Nintendo aesthetics.`;
+      const prompt = `A 3D voxel art postcard of a cute dinosaur named Felipe at a ${missionTitle} vacation. Bright summer colors, Nintendo style, high resolution.`;
       
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
@@ -159,11 +183,18 @@ export default function App() {
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
 
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-          setState(s => ({ ...s, lastPostcardUrl: imageUrl, isGeneratingPostcard: false }));
-          return;
+      const candidate = response.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.inlineData) {
+            const imageUrl = `data:image/png;base64,${part.inlineData.data}`;
+            setState(s => ({ 
+              ...s, 
+              postcards: { ...s.postcards, [missionId]: imageUrl },
+              isGeneratingPostcard: false 
+            }));
+            return;
+          }
         }
       }
     } catch (e) {
@@ -204,42 +235,68 @@ export default function App() {
 
     const isCorrect = option === currentQ.correctAnswer;
     if (isCorrect) {
+      playSystemSound('success');
       setState(s => ({ ...s, userAnswer: option, score: s.score + 10, feedbackType: 'success', showExplanation: true }));
     } else {
+      playSystemSound('error');
       setState(s => ({ ...s, userAnswer: option, feedbackType: 'error', attempts: s.attempts + 1 }));
     }
   };
 
   const missions = [
-    { id: 1, title: "Beach Party", icon: "🏖️", desc: "Sun, Sand & Waves" },
-    { id: 2, title: "Nature Cam", icon: "🏕️", desc: "Forest & Stars" },
-    { id: 3, title: "Fly High", icon: "✈️", desc: "Airport & Travel" },
-    { id: 4, title: "Magic Park", icon: "🎡", desc: "Rollercoasters" },
-    { id: 5, title: "City Tour", icon: "🍦", desc: "Museums & Fun" }
+    { id: 1, title: "Beach Party", icon: "🏖️", desc: "Sun, Sand & Waves", color: "bg-sky-400" },
+    { id: 2, title: "Nature Cam", icon: "🏕️", desc: "Forest & Stars", color: "bg-green-500" },
+    { id: 3, title: "Fly High", icon: "✈️", desc: "Airport & Travel", color: "bg-blue-600" },
+    { id: 4, title: "Magic Park", icon: "🎡", desc: "Rollercoasters", color: "bg-orange-500" },
+    { id: 5, title: "City Tour", icon: "🍦", desc: "Museums & Fun", color: "bg-yellow-500" }
   ];
 
-  // Pantalla de Pasaporte
+  // Helper para obtener el color dinámico según la misión activa
+  const getThemeColor = () => {
+    if (state.screen === 'playing' || state.screen === 'game_over') {
+      const mission = missions.find(m => m.id === state.activeMission);
+      return mission ? mission.color : "bg-sky-200";
+    }
+    return "bg-sky-200";
+  };
+
+  // --- RENDERS ---
+
   if (state.screen === 'passport') {
     return (
       <div className="min-h-screen p-6 flex flex-col items-center bg-[#fefce8]">
         <div className="voxel-card p-8 w-full max-w-xl border-sky-900 bg-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 rotate-12">
-            <svg viewBox="0 0 100 100" className="w-24 h-24 fill-sky-900"><path d="M20,20 L80,20 L80,80 L20,80 Z" /></svg>
-          </div>
           <h2 className="text-4xl font-black text-sky-900 italic mb-2 uppercase">My_Passport</h2>
-          <p className="mono text-[10px] text-sky-400 font-bold mb-8 uppercase">TRAVEL_LOG_ID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
+          <p className="mono text-[10px] text-sky-400 font-bold mb-8">COLLECTED_POSTCARDS: {Object.keys(state.postcards).length}</p>
           
-          <div className="grid grid-cols-3 gap-4 mb-12">
-            {missions.map(m => (
-              <div key={m.id} className={`aspect-square border-4 flex flex-col items-center justify-center p-2 transition-all ${state.stamps.includes(m.id) ? 'border-sky-900 bg-sky-50 rotate-3 scale-105 shadow-md' : 'border-dashed border-gray-300 opacity-40 grayscale'}`}>
-                <span className="text-4xl mb-1">{m.icon}</span>
-                <span className="text-[8px] font-black uppercase text-center">{m.title}</span>
-                {state.stamps.includes(m.id) && (
-                  <div className="mt-1 bg-sky-900 text-white text-[6px] px-1 font-bold">STAMPED</div>
-                )}
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-4 mb-12">
+            {missions.map(m => {
+              const postcard = state.postcards[m.id];
+              return (
+                <div key={m.id} 
+                  onClick={() => postcard && setState(s => ({ ...s, viewingPostcardId: m.id }))}
+                  className={`aspect-[4/3] border-4 flex flex-col items-center justify-center p-2 cursor-pointer transition-all ${state.stamps.includes(m.id) ? 'border-sky-900 bg-sky-50 shadow-md' : 'border-dashed border-gray-300 opacity-40'}`}>
+                  {postcard ? (
+                    <img src={postcard} className="w-full h-full object-cover border-2 border-white shadow-sm" alt={m.title} />
+                  ) : (
+                    <>
+                      <span className="text-3xl mb-1">{m.icon}</span>
+                      <span className="text-[10px] font-black uppercase">{m.title}</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          {state.viewingPostcardId && (
+            <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6" onClick={() => setState(s => ({ ...s, viewingPostcardId: undefined }))}>
+              <div className="bg-white p-4 voxel-card max-w-sm w-full animate-in zoom-in duration-300">
+                <img src={state.postcards[state.viewingPostcardId]} className="w-full h-auto mb-4 border-8 border-white shadow-xl" alt="Memory" />
+                <p className="text-center font-black uppercase text-sky-900 italic">Memories from {missions.find(m => m.id === state.viewingPostcardId)?.title}</p>
+              </div>
+            </div>
+          )}
 
           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="roblox-btn w-full py-4 text-xl">BACK TO TRAVELS</button>
         </div>
@@ -251,16 +308,15 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4 overflow-hidden relative">
-          <div className="absolute -top-10 -left-10 w-32 h-32 bg-sunny-yellow rounded-full blur-3xl opacity-20"></div>
           <VacationFelipeLogo />
           <h1 className="text-6xl font-black italic mb-2 text-sky-600 leading-none text-center uppercase tracking-tighter animate-text-wave">
             FELIPE<br/>
             <span className="text-summer-orange">QUEST</span>
           </h1>
-          <p className="mono text-[10px] text-sky-800 uppercase tracking-widest mb-12 font-bold">Premium_Vacation_Exp_v6.0</p>
+          <p className="mono text-[10px] text-sky-800 uppercase tracking-widest mb-12 font-bold">A1_Adventure_v6.1</p>
           <div className="flex flex-col gap-4">
             <button onClick={() => { initAudio(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="w-full roblox-btn py-6 text-2xl shadow-[0_6px_0_#ca8a04]">START TRIP</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="bg-white border-4 border-sky-900 text-sky-900 font-black py-4 uppercase text-sm hover:bg-sky-50">View_Passport 📖</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="bg-white border-4 border-sky-900 text-sky-900 font-black py-4 uppercase text-sm hover:bg-sky-50">Album de Fotos 📸</button>
           </div>
         </div>
       </div>
@@ -277,7 +333,8 @@ export default function App() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-12">
           {missions.map(m => (
-            <button key={m.id} onClick={() => startMissionSync(m.id)} className="voxel-card p-6 text-left hover:scale-105 transition-all group hover:border-summer-orange bg-white/80 relative">
+            <button key={m.id} onClick={() => startMissionSync(m.id)} className="voxel-card p-6 text-left hover:scale-105 transition-all group hover:border-summer-orange bg-white/80 relative overflow-hidden">
+              <div className={`absolute top-0 left-0 w-2 h-full ${m.color}`}></div>
               {state.stamps.includes(m.id) && <div className="absolute top-2 right-2 text-xl">✅</div>}
               <div className="text-5xl mb-4 group-hover:scale-110 transition-transform">{m.icon}</div>
               <h3 className="text-xl font-black text-sky-700 group-hover:text-summer-orange uppercase">{m.title}</h3>
@@ -295,7 +352,7 @@ export default function App() {
     if (!currentQ) return null;
 
     return (
-      <div className="min-h-screen flex flex-col items-center p-4">
+      <div className={`min-h-screen flex flex-col items-center p-4 transition-colors duration-1000 ${getThemeColor()} bg-opacity-20`}>
         <header className="w-full max-w-xl flex justify-between items-center mb-8">
           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mono text-[10px] text-sky-900/50 hover:text-sky-900 font-bold">{"[ EXIT_TRIP ]"}</button>
           <div className="voxel-card px-4 py-2 bg-white/60"><span className="text-xl font-black text-sky-900">XP: {state.score}</span></div>
@@ -313,21 +370,19 @@ export default function App() {
           <h3 className="text-2xl font-bold text-sky-900 mb-8 text-center leading-relaxed">
             {currentQ.text.split('________').map((part, i, arr) => (
               <React.Fragment key={i}>
-                {part}{i < arr.length - 1 && <span className="text-summer-orange border-b-4 border-summer-orange/40 px-2 mx-1 font-black underline decoration-wavy decoration-summer-orange/30">{state.userAnswer || "____"}</span>}
+                {part}{i < arr.length - 1 && <span className="text-summer-orange border-b-4 border-summer-orange/40 px-2 mx-1 font-black">{state.userAnswer || "____"}</span>}
               </React.Fragment>
             ))}
           </h3>
           <div className="flex justify-center mb-8">
-             <button onClick={() => playTTS(currentQ.text, currentQ.id)} className="bg-white border-2 border-sky-900 text-sky-900 px-6 py-2 rounded-full font-black uppercase text-xs hover:bg-sky-900 hover:text-white transition-colors flex items-center gap-2 group">
-               <span className="group-hover:animate-pulse">🔊</span> Play_Audio
-             </button>
+             <button onClick={() => playTTS(currentQ.text, currentQ.id)} className="bg-white border-2 border-sky-900 text-sky-900 px-6 py-2 rounded-full font-black uppercase text-xs hover:bg-sky-900 hover:text-white transition-colors flex items-center gap-2">🔊 Play_Audio</button>
           </div>
           <div className="grid grid-cols-1 gap-3 mb-8">
             {currentQ.options.map((opt, i) => (
               <button key={i} onClick={() => handleOptionClick(opt)} disabled={state.showExplanation} className={`p-4 border-4 font-black text-left transition-all uppercase text-lg ${
                   state.userAnswer === opt 
-                    ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900 text-sky-900 translate-y-1' : 'bg-red-500 border-sky-900 text-white scale-95') 
-                    : 'bg-white border-sky-900 text-sky-900 hover:border-summer-orange hover:translate-x-1 hover:-translate-y-1 hover:shadow-[4px_4px_0_#fb923c]'
+                    ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900 text-sky-900' : 'bg-red-500 border-sky-900 text-white scale-95') 
+                    : 'bg-white border-sky-900 text-sky-900 hover:border-summer-orange hover:translate-x-1'
                 }`}>
                 <span className="mono opacity-20 mr-4">0{i+1}</span> {opt}
               </button>
@@ -337,7 +392,6 @@ export default function App() {
             <div className="p-6 bg-sunny-yellow border-4 border-sky-900 text-sky-900 animate-in fade-in zoom-in duration-300">
               <h4 className="font-black text-xl italic uppercase mb-2">Excellent!</h4>
               <p className="text-2xl font-black mb-1">{currentQ.translation}</p>
-              <p className="mono text-[10px] font-bold opacity-70 mb-6 uppercase">"{currentQ.explanation}"</p>
               <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < currentMissionQs.length) {
                     setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, userAnswer: '', showExplanation: false }));
@@ -348,9 +402,9 @@ export default function App() {
                       screen: 'game_over', 
                       stamps: Array.from(new Set([...s.stamps, s.activeMission]))
                     }));
-                    if (currentMission) generateAIPostcard(currentMission.title);
+                    if (currentMission) generateAIPostcard(currentMission.id, currentMission.title);
                   }
-                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase text-sm border-2 border-sky-900 active:scale-95 transition-transform">CONTINUE_TRIP &raquo;</button>
+                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase text-sm border-2 border-sky-900 active:scale-95">CONTINUE_TRIP &raquo;</button>
             </div>
           )}
         </main>
@@ -359,6 +413,7 @@ export default function App() {
   }
 
   if (state.screen === 'game_over') {
+    const currentMission = missions.find(m => m.id === state.activeMission);
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-sky-100">
         <div className="voxel-card p-12 text-center max-w-md w-full border-tropical-green border-4 bg-white relative">
@@ -369,37 +424,33 @@ export default function App() {
             {state.isGeneratingPostcard ? (
               <div className="flex flex-col items-center">
                 <div className="w-12 h-12 border-4 border-sky-900 border-t-transparent animate-spin rounded-full mb-4"></div>
-                <p className="mono text-[10px] font-bold text-gray-400">DEVELOPING_A1_MEMORIES...</p>
+                <p className="mono text-[10px] font-bold text-gray-400">CAPTURING_MEMORY...</p>
               </div>
-            ) : state.lastPostcardUrl ? (
+            ) : state.postcards[state.activeMission] ? (
               <div className="animate-in fade-in zoom-in duration-700">
-                <img src={state.lastPostcardUrl} alt="AI Postcard" className="w-full h-auto shadow-lg border-4 border-white mb-2" />
-                <p className="text-[8px] mono text-gray-400 uppercase italic">Your_Exclusive_A1_Souvenir_Postcard</p>
+                <img src={state.postcards[state.activeMission]} alt="AI Postcard" className="w-full h-auto shadow-lg border-4 border-white mb-2" />
+                <p className="text-[8px] mono text-gray-400 uppercase italic">Saved to your album!</p>
               </div>
             ) : (
-              <button onClick={() => {
-                const currentMission = missions.find(m => m.id === state.activeMission);
-                if (currentMission) generateAIPostcard(currentMission.title);
-              }} className="text-xs text-sky-600 font-bold underline">Retry_Memories_Fetch</button>
+              <button onClick={() => currentMission && generateAIPostcard(currentMission.id, currentMission.title)} className="text-xs text-sky-600 font-bold underline">Re-generate Memory</button>
             )}
           </div>
 
           <div className="flex flex-col gap-3">
             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="roblox-btn w-full py-6 text-xl">LOBBY_MENU</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="text-sky-900 font-black uppercase text-xs hover:underline italic">Check_My_New_Stamp 📖</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="text-sky-900 font-black uppercase text-xs hover:underline italic">Check Album 📸</button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Pantallas default (syncing, etc)
   if (state.screen === 'syncing') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-sky-100">
         <div className="w-full max-w-sm">
           <div className="flex justify-center mb-8 animate-bounce"><VoxelFelipe isActive={true} mood="thinking" size="w-32 h-32" /></div>
-          <h2 className="mono text-sky-900 text-xs uppercase tracking-[0.5em] mb-4 text-center font-black">Loading_Trip_Data...</h2>
+          <h2 className="mono text-sky-900 text-xs uppercase tracking-[0.5em] mb-4 text-center font-black">Prepping_Gear...</h2>
           <div className="w-full h-4 bg-sky-200 border-2 border-sky-900 rounded-full overflow-hidden mb-4">
              <div className="h-full bg-summer-orange transition-all duration-300 shadow-[0_0_10px_#fb923c]" style={{ width: `${state.syncProgress}%` }}></div>
           </div>
