@@ -1,3 +1,4 @@
+
 export interface Question {
   id: number;
   mission: number;
@@ -32,7 +33,8 @@ export interface GameState {
   syncProgress: number;
   scrambleWords: string[];
   selectedWords: string[];
-  stamps: number[]; // IDs de misiones completadas
-  lastPostcardUrl?: string;
+  stamps: number[]; 
+  postcards: Record<number, string>; // Mapa de misión ID -> URL de imagen
   isGeneratingPostcard: boolean;
+  viewingPostcardId?: number;
 }
