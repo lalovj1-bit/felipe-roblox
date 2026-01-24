@@ -1,10 +1,33 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
 import { GameState, Accessory, Question, ScrambleQuestion } from './types';
 
-// --- HELPERS ---
+// --- HELPERS PARA AUDIO ---
+function decode(base64: string): Uint8Array {
+  const binaryString = window.atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
 const AccessoryLayer = ({ item }: { item: Accessory }) => {
   if (item === 'none') return null;
   return (
@@ -39,7 +62,6 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
         <g transform="translate(10, 45)">
           <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#0c4a6e" strokeWidth="2" />
           <circle cx="10" cy="7.5" r="4" fill="#94a3b8" stroke="#0c4a6e" strokeWidth="1" />
-          <line x1="10" y1="-45" x2="10" y2="0" stroke="#0c4a6e" strokeWidth="1" strokeDasharray="2" />
         </g>
       )}
     </g>
@@ -104,6 +126,32 @@ export default function App() {
     return audioContextRef.current;
   };
 
+  const playTTS = async (text: string) => {
+    try {
+      const ctx = await initAudio();
+      if (!ctx) return;
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+        },
+      });
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        source.start();
+      }
+    } catch (e) {
+      console.error("TTS Error:", e);
+    }
+  };
+
   const playSystemSound = async (type: 'success' | 'error') => {
     const ctx = await initAudio();
     if (!ctx) return;
@@ -111,12 +159,12 @@ export default function App() {
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     if (type === 'success') {
-      osc.frequency.setValueAtTime(500, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
       gain.gain.setValueAtTime(0.1, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
     } else {
-      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.setValueAtTime(200, ctx.currentTime);
       osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
       gain.gain.setValueAtTime(0.1, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
@@ -137,6 +185,8 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
+    // TTS for the translation to guide the kid
+    playTTS(`Translate: ${q.translation}`);
   };
 
   const handleWordClick = (word: string, index: number) => {
@@ -159,9 +209,11 @@ export default function App() {
     const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
     if (state.selectedWords.join(' ') === currentQ.sentence) {
       playSystemSound('success');
+      playTTS("Perfect! Well done.");
       setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
     } else {
       playSystemSound('error');
+      playTTS("Try again!");
       prepareScramble(state.currentQuestionIndex);
     }
   };
@@ -178,7 +230,6 @@ export default function App() {
       const textPromise = ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Generate a 1-sentence diary entry in English for a child about a trip to ${missionTitle}. Use simple A1 English.`,
-        config: { temperature: 0.7 }
       });
       const [imgRes, textRes] = await Promise.all([imgPromise, textPromise]);
       let imageUrl = "";
@@ -189,18 +240,27 @@ export default function App() {
         }
       }
       const diaryEntry = textRes.text || "I had a great trip!";
-      const accessoryMapping: Record<number, Accessory> = { 1: 'sunglasses', 2: 'safari_hat', 3: 'pilot_headset', 4: 'party_ears', 5: 'camera' };
+      const accs: Accessory[] = ['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'];
       setState(s => ({ 
         ...s, 
         postcards: { ...s.postcards, [missionId]: imageUrl },
         diaries: { ...s.diaries, [missionId]: diaryEntry },
-        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accessoryMapping[missionId]])),
+        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accs[missionId-1]])),
         isGeneratingPostcard: false 
       }));
     } catch (e) {
       setState(s => ({ ...s, isGeneratingPostcard: false }));
     }
   };
+
+  // Escuchar pregunta inicial
+  useEffect(() => {
+    if (state.screen === 'playing' && state.activeMission < 5) {
+      const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
+      const q = currentMissionQs[state.currentQuestionIndex];
+      if (q) playTTS(q.text.replace('________', '...'));
+    }
+  }, [state.currentQuestionIndex, state.activeMission, state.screen]);
 
   if (state.screen === 'intro') {
     return (
@@ -257,9 +317,9 @@ export default function App() {
               <p className="text-2xl font-black italic text-sky-700">"{q.translation}"</p>
             </div>
             <div className="min-h-[120px] bg-white border-4 border-sky-900 p-6 flex flex-wrap gap-2 mb-8 items-center justify-center rounded-xl">
-              {state.selectedWords.length === 0 && <p className="text-gray-300 font-black uppercase">Order the sentence...</p>}
+              {state.selectedWords.length === 0 && <p className="text-gray-300 font-black uppercase">Order the words...</p>}
               {state.selectedWords.map((w, i) => (
-                <button key={i} onClick={() => handleRemoveWord(w, i)} className="bg-summer-orange text-white px-4 py-2 font-black uppercase text-sm border-2 border-sky-900 shadow-md">
+                <button key={i} onClick={() => handleRemoveWord(w, i)} className="bg-summer-orange text-white px-4 py-2 font-black uppercase text-sm border-2 border-sky-900 shadow-md transform active:scale-95">
                   {w}
                 </button>
               ))}
@@ -283,11 +343,11 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
                     generateAIPostcard(5, "City Finale");
                   }
-                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Next Challenge</button>
+                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Next Challenge »</button>
               </div>
             ) : (
               <button disabled={state.scrambleWords.length > 0} onClick={checkScramble} className={`w-full py-6 text-2xl roblox-btn ${state.scrambleWords.length > 0 ? 'opacity-50 grayscale' : ''}`}>
-                CHECK
+                CHECK SENTENCE
               </button>
             )}
           </main>
@@ -322,9 +382,11 @@ export default function App() {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
+                  playTTS("That's correct!");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
+                  playTTS("Oops, try another one.");
                 }
               }} disabled={state.showExplanation} className={`p-5 border-4 font-black text-center uppercase text-xl transition-all ${
                   state.userAnswer === opt 
@@ -337,7 +399,7 @@ export default function App() {
           </div>
           {state.showExplanation && (
             <div className="p-6 bg-sunny-yellow border-4 border-sky-900 text-sky-900 animate-in slide-in-from-bottom">
-              <p className="text-xl font-black italic text-center">"{currentQ.translation}"</p>
+              <p className="text-xl font-black italic text-center mb-4">"{currentQ.translation}"</p>
               <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < currentMissionQs.length) {
                     setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, userAnswer: '', showExplanation: false }));
@@ -345,7 +407,7 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, s.activeMission])) }));
                     generateAIPostcard(state.activeMission, missions.find(m => m.id === state.activeMission)?.title || "");
                   }
-                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase mt-4">Continue »</button>
+                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Continue »</button>
             </div>
           )}
         </main>
@@ -359,7 +421,7 @@ export default function App() {
         <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
         <div className="voxel-card p-10 w-full max-w-3xl bg-white mb-10">
           <div className="mb-12">
-            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">My Wardrobe</h3>
+            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">Wardrobe</h3>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
@@ -396,7 +458,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-6 bg-sky-100">
         <div className="voxel-card p-12 text-center max-w-md w-full border-tropical-green border-4 bg-white">
            <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
-           <h3 className="text-2xl font-black text-tropical-green mb-8 uppercase tracking-widest">STAMP UNLOCKED!</h3>
+           <h3 className="text-2xl font-black text-tropical-green mb-8 uppercase tracking-widest">MISSION COMPLETE!</h3>
            <div className="mb-8 min-h-[250px] flex items-center justify-center">
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
