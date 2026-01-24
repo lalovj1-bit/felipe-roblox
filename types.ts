@@ -1,5 +1,4 @@
 
-
 export interface Question {
   id: number;
   mission: number;
@@ -12,7 +11,6 @@ export interface Question {
   audioUrl?: string;
 }
 
-// Added ScrambleQuestion interface
 export interface ScrambleQuestion {
   id: number;
   sentence: string;
@@ -37,9 +35,12 @@ export interface GameState {
   syncProgress: number;
   stamps: number[]; 
   postcards: Record<number, string>; 
-  diaries: Record<number, string>; // Entradas de diario generadas por IA
+  diaries: Record<number, string>;
   isGeneratingPostcard: boolean;
   viewingPostcardId?: number;
   equippedAccessory: Accessory;
   unlockedAccessories: Accessory[];
+  // Scramble mode state
+  scrambleWords: string[];
+  selectedWords: string[];
 }
