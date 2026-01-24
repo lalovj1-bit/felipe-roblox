@@ -2,9 +2,50 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
-import { GameState, Accessory } from './types';
+import { GameState, Accessory, Question, ScrambleQuestion } from './types';
 
 // --- HELPERS ---
+const AccessoryLayer = ({ item }: { item: Accessory }) => {
+  if (item === 'none') return null;
+  return (
+    <g transform="translate(0, -5)">
+      {item === 'sunglasses' && (
+        <g>
+          <rect x="40" y="28" width="12" height="8" fill="#000" rx="1" />
+          <rect x="58" y="28" width="12" height="8" fill="#000" rx="1" />
+          <rect x="52" y="31" width="6" height="2" fill="#000" />
+        </g>
+      )}
+      {item === 'safari_hat' && (
+        <g>
+          <rect x="25" y="10" width="60" height="10" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
+          <rect x="35" y="0" width="40" height="12" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
+        </g>
+      )}
+      {item === 'pilot_headset' && (
+        <g>
+          <rect x="30" y="20" width="50" height="4" fill="#1e293b" rx="2" />
+          <rect x="28" y="25" width="8" height="15" fill="#1e293b" rx="2" />
+          <rect x="74" y="25" width="8" height="15" fill="#1e293b" rx="2" />
+        </g>
+      )}
+      {item === 'party_ears' && (
+        <g>
+          <circle cx="35" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
+          <circle cx="75" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
+        </g>
+      )}
+      {item === 'camera' && (
+        <g transform="translate(10, 45)">
+          <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#0c4a6e" strokeWidth="2" />
+          <circle cx="10" cy="7.5" r="4" fill="#94a3b8" stroke="#0c4a6e" strokeWidth="1" />
+          <line x1="10" y1="-45" x2="10" y2="0" stroke="#0c4a6e" strokeWidth="1" strokeDasharray="2" />
+        </g>
+      )}
+    </g>
+  );
+};
+
 const VoxelFelipe = ({ isActive, size = "w-48 h-48", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
     <div className="absolute inset-0 felipe-bg blur-[60px] rounded-full"></div>
@@ -19,44 +60,11 @@ const VoxelFelipe = ({ isActive, size = "w-48 h-48", mood = "normal", accessory 
       ) : (
         <rect x="65" y="25" width="8" height="8" fill="#000" />
       )}
-      <g transform="translate(0, -5)">
-        {accessory === 'sunglasses' && (
-          <g>
-            <rect x="40" y="28" width="12" height="8" fill="#000" rx="1" />
-            <rect x="58" y="28" width="12" height="8" fill="#000" rx="1" />
-            <rect x="52" y="31" width="6" height="2" fill="#000" />
-          </g>
-        )}
-        {accessory === 'safari_hat' && (
-          <g>
-            <rect x="25" y="10" width="60" height="10" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
-            <rect x="35" y="0" width="40" height="12" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
-          </g>
-        )}
-        {accessory === 'pilot_headset' && (
-          <g>
-            <rect x="30" y="20" width="50" height="4" fill="#1e293b" rx="2" />
-            <rect x="28" y="25" width="8" height="15" fill="#1e293b" rx="2" />
-            <rect x="74" y="25" width="8" height="15" fill="#1e293b" rx="2" />
-          </g>
-        )}
-        {accessory === 'party_ears' && (
-          <g>
-            <circle cx="35" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
-            <circle cx="75" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
-          </g>
-        )}
-        {accessory === 'camera' && (
-          <g transform="translate(10, 45)">
-            <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#0c4a6e" strokeWidth="2" />
-            <circle cx="10" cy="7.5" r="4" fill="#94a3b8" stroke="#0c4a6e" strokeWidth="1" />
-          </g>
-        )}
-      </g>
+      <AccessoryLayer item={accessory} />
       <rect x="25" y="45" width="35" height="40" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#0c4a6e" strokeWidth="2" />
       <rect x="32" y="10" width="8" height="35" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
       <rect x="32" y="10" width="25" height="6" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
-      <rect x="34" y="30" width="4" height="6" fill="#f472b6" />
+      <rect x="34" y="30" width="4" height="6" fill="#f472b6" className={isActive ? "animate-pulse" : ""} />
     </svg>
   </div>
 );
@@ -90,6 +98,9 @@ export default function App() {
       const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
       audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
     }
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
     return audioContextRef.current;
   };
 
@@ -99,18 +110,26 @@ export default function App() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(type === 'success' ? 600 : 150, ctx.currentTime);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-    osc.start(); osc.stop(ctx.currentTime + 0.2);
+    if (type === 'success') {
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    } else {
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    }
+    osc.start(); osc.stop(ctx.currentTime + 0.3);
   };
 
   const missions = [
-    { id: 1, title: "The Beach", icon: "🏖️", type: "beach" },
-    { id: 2, title: "The Forest", icon: "🏕️", type: "nature" },
-    { id: 3, title: "The Airport", icon: "✈️", type: "fly" },
-    { id: 4, title: "Theme Park", icon: "🎡", type: "park" },
-    { id: 5, title: "The City", icon: "🏙️", type: "city" }
+    { id: 1, title: "Beach Party", icon: "🏖️" },
+    { id: 2, title: "Nature Camp", icon: "🏕️" },
+    { id: 3, title: "Fly High", icon: "✈️" },
+    { id: 4, title: "Magic Park", icon: "🎡" },
+    { id: 5, title: "City Finale", icon: "🏙️" }
   ];
 
   const prepareScramble = (index: number) => {
@@ -151,24 +170,31 @@ export default function App() {
     setState(s => ({ ...s, isGeneratingPostcard: true }));
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const imgRes = await ai.models.generateContent({
+      const imgPromise = ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A voxel art postcard of Felipe the dinosaur at ${missionTitle}. Summer vibes.` }] },
+        contents: { parts: [{ text: `A 3D voxel art postcard of a dinosaur named Felipe in a ${missionTitle} vacation. Bright colors.` }] },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
-      const textRes = await ai.models.generateContent({
+      const textPromise = ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Generate a 1-sentence diary entry in English for a child about ${missionTitle}.`,
+        contents: `Generate a 1-sentence diary entry in English for a child about a trip to ${missionTitle}. Use simple A1 English.`,
+        config: { temperature: 0.7 }
       });
+      const [imgRes, textRes] = await Promise.all([imgPromise, textPromise]);
       let imageUrl = "";
-      const part = imgRes.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-      if (part) imageUrl = `data:image/png;base64,${part.inlineData.data}`;
-      const diaryEntry = textRes.text || "Best trip ever!";
-      const accs: Accessory[] = ['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'];
+      const candidates = imgRes.candidates;
+      if (candidates && candidates[0] && candidates[0].content && candidates[0].content.parts) {
+        for (const part of candidates[0].content.parts) {
+          if (part.inlineData) { imageUrl = `data:image/png;base64,${part.inlineData.data}`; break; }
+        }
+      }
+      const diaryEntry = textRes.text || "I had a great trip!";
+      const accessoryMapping: Record<number, Accessory> = { 1: 'sunglasses', 2: 'safari_hat', 3: 'pilot_headset', 4: 'party_ears', 5: 'camera' };
       setState(s => ({ 
-        ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
+        ...s, 
+        postcards: { ...s.postcards, [missionId]: imageUrl },
         diaries: { ...s.diaries, [missionId]: diaryEntry },
-        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accs[missionId-1]])),
+        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accessoryMapping[missionId]])),
         isGeneratingPostcard: false 
       }));
     } catch (e) {
@@ -181,10 +207,10 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4">
           <div className="flex justify-center mb-6"><VoxelFelipe isActive={true} accessory={state.equippedAccessory} /></div>
-          <h1 className="text-6xl font-black text-sky-600 uppercase tracking-tighter mb-12 animate-text-wave">FELIPE QUEST</h1>
+          <h1 className="text-6xl font-black text-sky-600 uppercase mb-12 animate-text-wave">FELIPE QUEST</h1>
           <div className="flex flex-col gap-4">
             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="w-full roblox-btn py-6 text-2xl">START JOURNEY</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="bg-white border-4 border-sky-900 text-sky-900 font-black py-4 uppercase text-sm">Album & Closet</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="bg-white border-4 border-sky-900 text-sky-900 font-black py-4 uppercase text-sm">Album & Wardrobe</button>
           </div>
         </div>
       </div>
@@ -194,7 +220,7 @@ export default function App() {
   if (state.screen === 'mission_select') {
     return (
       <div className="min-h-screen p-6 max-w-4xl mx-auto flex flex-col items-center">
-        <h2 className="text-5xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h2>
+        <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-12">
           {missions.map(m => (
             <button key={m.id} onClick={() => {
@@ -222,7 +248,7 @@ export default function App() {
       return (
         <div className="min-h-screen flex flex-col items-center p-6 bg-yellow-50">
           <header className="w-full max-w-2xl flex justify-between items-center mb-8">
-            <h2 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h2>
+            <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
             <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
           </header>
           <main className="w-full max-w-2xl voxel-card p-8 bg-white/95">
@@ -255,7 +281,7 @@ export default function App() {
                     prepareScramble(next);
                   } else {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
-                    generateAIPostcard(5, "The City");
+                    generateAIPostcard(5, "City Finale");
                   }
                 }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Next Challenge</button>
               </div>
@@ -276,7 +302,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col items-center p-6">
         <header className="w-full max-w-2xl flex justify-between items-center mb-8">
-          <h2 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h2>
+          <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
           <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
         </header>
         <main className="w-full max-w-2xl voxel-card p-8 bg-white">
@@ -302,7 +328,7 @@ export default function App() {
                 }
               }} disabled={state.showExplanation} className={`p-5 border-4 font-black text-center uppercase text-xl transition-all ${
                   state.userAnswer === opt 
-                    ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900' : 'bg-red-400 border-sky-900') 
+                    ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900 scale-105' : 'bg-red-400 border-sky-900 scale-95') 
                     : 'bg-white border-sky-900 hover:border-summer-orange hover:-translate-y-1'
                 }`}>
                 {opt}
@@ -330,14 +356,14 @@ export default function App() {
   if (state.screen === 'passport') {
     return (
       <div className="min-h-screen p-6 flex flex-col items-center bg-[#fefce8]">
-        <h2 className="text-5xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h2>
+        <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
         <div className="voxel-card p-10 w-full max-w-3xl bg-white mb-10">
           <div className="mb-12">
-            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">Wardrobe</h3>
+            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">My Wardrobe</h3>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
-                  className={`w-20 h-20 border-4 flex items-center justify-center text-4xl transition-all ${state.equippedAccessory === acc ? 'border-sky-900 bg-sunny-yellow scale-110 shadow-lg' : 'border-gray-100'}`}>
+                  className={`w-20 h-20 border-4 flex items-center justify-center text-4xl transition-all ${state.equippedAccessory === acc ? 'border-sky-900 bg-sunny-yellow scale-110 shadow-lg' : 'border-gray-100 opacity-60'}`}>
                   {{ none: "🦖", sunglasses: "🕶️", safari_hat: "🤠", pilot_headset: "🎧", party_ears: "🐭", camera: "📷" }[acc]}
                 </button>
               ))}
@@ -369,8 +395,8 @@ export default function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-sky-100">
         <div className="voxel-card p-12 text-center max-w-md w-full border-tropical-green border-4 bg-white">
-           <h2 className="text-5xl font-black text-sky-900 italic mb-8 uppercase">FELIPE QUEST</h2>
-           <h3 className="text-2xl font-black text-tropical-green mb-8 uppercase tracking-widest">MISSION COMPLETE!</h3>
+           <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
+           <h3 className="text-2xl font-black text-tropical-green mb-8 uppercase tracking-widest">STAMP UNLOCKED!</h3>
            <div className="mb-8 min-h-[250px] flex items-center justify-center">
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
