@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
+import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES } from './constants';
 import { GameState } from './types';
 
 const missions = [
@@ -100,12 +100,20 @@ export default function App() {
     QUESTIONS.filter(q => q.mission === state.activeMission), 
   [state.activeMission]);
 
-  const isPuzzleLevel = (state.currentQuestionIndex + 1) % 5 === 0;
+  // Lógica de Puzzle: Todos los niveles de la Misión 5, o los niveles 5 y 10 en las demás
+  const isPuzzleLevel = state.activeMission === 5 || (state.currentQuestionIndex + 1) % 5 === 0;
 
   useEffect(() => {
     if (state.screen === 'playing') {
       if (isPuzzleLevel) {
-        const puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
+        let puzzleIdx = 0;
+        if (state.activeMission === 5) {
+          // Misión 5 usa los puzzles del 8 al 17 (10 puzzles)
+          puzzleIdx = 8 + state.currentQuestionIndex;
+        } else {
+          // Otras misiones usan puzzles de 2 en 2
+          puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
+        }
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
         setState(s => ({ ...s, scrambleWords: shuffle(puzzleData.sentence.split(' ')), selectedWords: [] }));
       } else {
@@ -144,15 +152,22 @@ export default function App() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-[500px]">
         {missions.map(m => {
           const done = state.stamps.includes(m.id);
+          const prize = PRIZES.find(p => p.id === m.id);
           return (
             <button key={m.id} onClick={() => {
               initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
               playTTS(`World ${m.id}`);
-            }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-green-100' : 'bg-white'}`}>
+            }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-yellow-50 border-yellow-500' : 'bg-white'}`}>
               <span className="text-6xl">{m.icon}</span>
               <span className="text-[14px] font-bold uppercase">{m.title}</span>
-              {done && <span className="text-green-600 text-[14px] font-black">CLEARED!</span>}
+              {done && (
+                <div className="flex flex-col items-center mt-2 animate-pulse">
+                  <span className="text-4xl">{prize?.icon}</span>
+                  <span className="text-xs font-black text-yellow-700 uppercase mt-1">¡PREMIO OBTENIDO!</span>
+                  <span className="text-[10px] font-bold text-gray-600">{prize?.name}</span>
+                </div>
+              )}
             </button>
           );
         })}
@@ -166,7 +181,13 @@ export default function App() {
     if (qIdxForNormal > 4) qIdxForNormal -= 1;
     
     const currentQ = missionQs[qIdxForNormal];
-    const puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
+    
+    let puzzleIdx = 0;
+    if (state.activeMission === 5) {
+      puzzleIdx = 8 + state.currentQuestionIndex;
+    } else {
+      puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
+    }
     const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
 
     return (
@@ -182,7 +203,7 @@ export default function App() {
         <main className="mario-panel w-full max-w-[500px] p-8 bg-white flex flex-col shadow-2xl">
           {isPuzzleLevel ? (
             <div className="flex flex-col">
-              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE TIME!</div>
+              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE CHALLENGE!</div>
               <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Follow the model:</p>
               <div className="bg-blue-100 p-5 border-4 border-black mb-8 text-center">
                  <p className="font-bold text-2xl text-blue-900 leading-tight">"{puzzleData.sentence}"</p>
@@ -210,7 +231,7 @@ export default function App() {
                       if (newSelected.length === correctWords.length) {
                         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        playTTS("Excellent!");
+                        playTTS("Perfect!");
                         
                         setTimeout(() => {
                            if (state.currentQuestionIndex === 9) {
@@ -238,7 +259,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* OPCIONES EN FILAS DE 2 (Grid cols 2) */}
               <div className="grid grid-cols-2 gap-4">
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={() => {
@@ -271,19 +291,26 @@ export default function App() {
     );
   }
 
-  if (state.screen === 'game_over') return (
-    <div className="game-container justify-center bg-black p-10">
-      <div className="mario-panel p-16 text-center max-w-[480px] w-full bg-white border-8 border-black">
-        <h2 className="mc-logo text-emerald-600 mb-8 text-3xl animate-bounce">WORLD CLEAR!</h2>
-        <VoxelFelipe isDancing={true} />
-        <div className="bg-yellow-400 p-10 border-4 border-black my-12 shadow-[10px_10px_0px_#000]">
-           <p className="text-[16px] uppercase text-black mb-4 font-bold">TOTAL XP</p>
-           <p className="font-bold text-7xl text-black font-mono">{state.score}</p>
+  if (state.screen === 'game_over') {
+    const prize = PRIZES.find(p => p.id === state.activeMission);
+    return (
+      <div className="game-container justify-center bg-black p-10">
+        <div className="mario-panel p-16 text-center max-w-[480px] w-full bg-white border-8 border-black">
+          <h2 className="mc-logo text-emerald-600 mb-8 text-3xl animate-bounce">WORLD CLEAR!</h2>
+          <div className="flex flex-col items-center gap-4 mb-10">
+            <span className="text-8xl drop-shadow-lg">{prize?.icon}</span>
+            <span className="text-xl font-black uppercase text-yellow-600">¡GANASTE EL {prize?.name}!</span>
+          </div>
+          <VoxelFelipe isDancing={true} />
+          <div className="bg-yellow-400 p-10 border-4 border-black my-12 shadow-[10px_10px_0px_#000]">
+             <p className="text-[16px] uppercase text-black mb-4 font-bold">TOTAL XP</p>
+             <p className="font-bold text-7xl text-black font-mono">{state.score}</p>
+          </div>
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-10 text-[24px] bg-orange-600 text-white font-black">MAP SELECT</button>
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-10 text-[24px] bg-orange-600 text-white font-black">MAP SELECT</button>
       </div>
-    </div>
-  );
+    );
+  }
 
   if (state.screen === 'passport') return (
     <div className="game-container p-10 bg-orange-100">
@@ -298,12 +325,16 @@ export default function App() {
           </div>
         </div>
         <div className="grid grid-cols-3 gap-6">
-          {missions.map(m => (
-            <div key={m.id} className={`p-6 border-4 border-black flex flex-col items-center transition-all ${state.stamps.includes(m.id) ? 'bg-yellow-200 scale-110' : 'bg-gray-100 opacity-20 grayscale'}`}>
-              <span className="text-6xl">{m.icon}</span>
-              <span className="text-[12px] font-black uppercase mt-4">W-{m.id}</span>
-            </div>
-          ))}
+          {missions.map(m => {
+            const done = state.stamps.includes(m.id);
+            const prize = PRIZES.find(p => p.id === m.id);
+            return (
+              <div key={m.id} className={`p-6 border-4 border-black flex flex-col items-center transition-all ${done ? 'bg-yellow-200 scale-110' : 'bg-gray-100 opacity-20 grayscale'}`}>
+                <span className="text-4xl">{done ? prize?.icon : m.icon}</span>
+                <span className="text-[10px] font-black uppercase mt-4">W-{m.id}</span>
+              </div>
+            );
+          })}
         </div>
         <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button w-full mt-16 bg-blue-600 text-white py-8 text-[18px] font-black">BACK</button>
       </div>
