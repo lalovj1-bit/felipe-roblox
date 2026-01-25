@@ -2,7 +2,7 @@
 import { Question, ScrambleQuestion } from './types';
 
 export const QUESTIONS: Question[] = [
-  // MUNDO 1: DINO LAND 🦖 (Naturaleza y Básicos)
+  // MUNDO 1: DINO LAND 🦖
   { id: 1, mission: 1, text: "The dinosaur is very ________.", options: ["big", "small", "blue", "fast"], correctAnswer: "big", hint: "Like an elephant!", translation: "El dinosaurio es muy grande.", explanation: "Big es grande." },
   { id: 2, mission: 1, text: "I see a green ________ in the forest.", options: ["tree", "car", "phone", "pizza"], correctAnswer: "tree", hint: "It has leaves.", translation: "Veo un árbol verde en el bosque.", explanation: "Tree es árbol." },
   { id: 3, mission: 1, text: "The sky is ________ today.", options: ["blue", "red", "yellow", "pink"], correctAnswer: "blue", hint: "The color of the ocean.", translation: "El cielo está azul hoy.", explanation: "Blue es azul." },
@@ -12,8 +12,7 @@ export const QUESTIONS: Question[] = [
   { id: 7, mission: 1, text: "Grass is ________.", options: ["green", "purple", "white", "black"], correctAnswer: "green", hint: "The color of nature.", translation: "La hierba es verde.", explanation: "Green es verde." },
   { id: 8, mission: 1, text: "The sun is a ________.", options: ["star", "planet", "moon", "cloud"], correctAnswer: "star", hint: "A bright light in space.", translation: "El sol es una estrella.", explanation: "Star es estrella." },
   { id: 9, mission: 1, text: "Birds can ________ very high.", options: ["fly", "swim", "cook", "read"], correctAnswer: "fly", hint: "Moving in the air.", translation: "Los pájaros pueden volar muy alto.", explanation: "Fly es volar." },
-  { id: 10, mission: 1, text: "I love my ________.", options: ["family", "pencil", "socks", "box"], correctAnswer: "family", hint: "Mom, Dad, and you.", translation: "Amo a mi familia.", explanation: "Family es familia." },
-
+  
   // MUNDO 2: CYBER CITY 🤖
   { id: 11, mission: 2, text: "The robot can ________.", options: ["dance", "eat", "sleep", "cry"], correctAnswer: "dance", hint: "Moving to music.", translation: "El robot puede bailar.", explanation: "Dance es bailar." },
   { id: 12, mission: 2, text: "I use a ________ to play games.", options: ["computer", "spoon", "pillow", "brush"], correctAnswer: "computer", hint: "A smart machine.", translation: "Uso una computadora para jugar.", explanation: "Computer es computadora." },
@@ -24,12 +23,17 @@ export const QUESTIONS: Question[] = [
   { id: 17, mission: 2, text: "Press the ________ button.", options: ["red", "blue", "green", "yellow"], correctAnswer: "red", hint: "The color of an apple.", translation: "Pulsa el botón rojo.", explanation: "Red es rojo." },
   { id: 18, mission: 2, text: "I take a ________ with my camera.", options: ["photo", "sandwich", "bath", "walk"], correctAnswer: "photo", hint: "A picture.", translation: "Hago una foto con mi cámara.", explanation: "Photo es foto." },
   { id: 19, mission: 2, text: "The screen is ________.", options: ["touch", "eat", "run", "jump"], correctAnswer: "touch", hint: "Use your fingers.", translation: "La pantalla es táctil.", explanation: "Touch es tocar." },
-  { id: 20, mission: 2, text: "Robots don't ________.", options: ["sleep", "talk", "walk", "move"], correctAnswer: "sleep", hint: "They are always on!", translation: "Los robots no duermen.", explanation: "Sleep es dormir." },
 
-  // (Simulando más preguntas para los otros mundos de forma abreviada...)
+  // MUNDO 3: SWEET KINGDOM 🍭
   { id: 21, mission: 3, text: "The cake is ________.", options: ["sweet", "salty", "sour", "bitter"], correctAnswer: "sweet", hint: "Like sugar.", translation: "El pastel es dulce.", explanation: "Sweet es dulce." },
-  { id: 31, mission: 4, text: "The ship is in the ________.", options: ["ocean", "forest", "desert", "city"], correctAnswer: "ocean", hint: "Big salt water.", translation: "El barco está en el océano.", explanation: "Ocean es océano." },
-  { id: 41, mission: 5, text: "The ________ is full of stars.", options: ["galaxy", "room", "box", "pocket"], correctAnswer: "galaxy", hint: "The whole universe.", translation: "La galaxia está llena de estrellas.", explanation: "Galaxy es galaxia." }
+  { id: 22, mission: 3, text: "I want an ________ ice cream.", options: ["orange", "apple", "onion", "egg"], correctAnswer: "orange", hint: "A citrus fruit.", translation: "Quiero un helado de naranja.", explanation: "Orange es naranja." },
+  { id: 23, mission: 3, text: "The chocolate is ________.", options: ["brown", "white", "pink", "grey"], correctAnswer: "brown", hint: "Color of wood.", translation: "El chocolate es marrón.", explanation: "Brown es marrón." },
+  { id: 24, mission: 3, text: "Milk comes from a ________.", options: ["cow", "cat", "dog", "lion"], correctAnswer: "cow", hint: "A farm animal.", translation: "La leche viene de la vaca.", explanation: "Cow es vaca." },
+  { id: 25, mission: 3, text: "Apples are ________.", options: ["healthy", "bad", "scary", "noisy"], correctAnswer: "healthy", hint: "Good for you.", translation: "Las manzanas son saludables.", explanation: "Healthy es saludable." },
+  { id: 26, mission: 3, text: "I eat with a ________.", options: ["fork", "shoe", "hat", "book"], correctAnswer: "fork", hint: "Used for pasta.", translation: "Como con un tenedor.", explanation: "Fork es tenedor." },
+  { id: 27, mission: 3, text: "Water is ________.", options: ["good", "bad", "hot", "dry"], correctAnswer: "good", hint: "Essential for life.", translation: "El agua es buena.", explanation: "Good es bueno." },
+  { id: 28, mission: 3, text: "The pizza is ________.", options: ["delicious", "sad", "angry", "blue"], correctAnswer: "delicious", hint: "Very yummy.", translation: "La pizza está deliciosa.", explanation: "Delicious es delicioso." },
+  { id: 29, mission: 3, text: "I like ________ juice.", options: ["apple", "bread", "cheese", "meat"], correctAnswer: "apple", hint: "From a red fruit.", translation: "Me gusta el zumo de manzana.", explanation: "Apple es manzana." }
 ];
 
 export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
