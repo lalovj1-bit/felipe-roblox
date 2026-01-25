@@ -2,16 +2,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
-import { GameState, Accessory } from './types';
+import { GameState, Accessory, ChatMessage } from './types';
 
-// --- HELPERS PARA AUDIO ---
+// --- CONSTANTS ---
+// Moved missions constant to top level to avoid hoisting errors
+const missions = [
+  { id: 1, title: "Space", icon: "🚀" }, 
+  { id: 2, title: "Ocean", icon: "🌊" }, 
+  { id: 3, title: "Winter", icon: "❄️" }, 
+  { id: 4, title: "Forest", icon: "🍄" }, 
+  { id: 5, title: "Dinos", icon: "🦖" }
+];
+
+// --- AUDIO HELPERS ---
 function decode(base64: string): Uint8Array {
   const binaryString = window.atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
+  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
   return bytes;
 }
 
@@ -21,495 +29,210 @@ async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: 
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
+    for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
   }
   return buffer;
 }
 
-const AccessoryLayer = ({ item }: { item: Accessory }) => {
-  if (item === 'none') return null;
+const ParticleEffect = () => {
+  const particles = Array.from({ length: 8 }).map((_, i) => {
+    const angle = (i / 8) * Math.PI * 2;
+    const x = Math.cos(angle) * 100;
+    const y = Math.sin(angle) * 100;
+    return <div key={i} className="xp-orb" style={{ '--tw-translate-x': `${x}px`, '--tw-translate-y': `${y}px` } as any} />;
+  });
+  return <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{particles}</div>;
+};
+
+const AccessoryLayer = ({ item, isNight }: { item: Accessory, isNight: boolean }) => {
+  if (item === 'none') return isNight ? <rect x="75" y="45" width="4" height="20" fill="#a16207" /> : null;
   return (
     <g transform="translate(0, -5)">
       {item === 'sunglasses' && (
-        <g>
-          <rect x="40" y="28" width="12" height="8" fill="#000" />
-          <rect x="58" y="28" width="12" height="8" fill="#000" />
-          <rect x="52" y="31" width="6" height="2" fill="#000" />
-        </g>
+        <g><rect x="40" y="28" width="12" height="8" fill="#000" /><rect x="58" y="28" width="12" height="8" fill="#000" /><rect x="52" y="31" width="6" height="2" fill="#000" /></g>
       )}
       {item === 'safari_hat' && (
-        <g>
-          <rect x="25" y="5" width="60" height="10" fill="#a16207" stroke="#000" strokeWidth="2" />
-          <rect x="35" y="-5" width="40" height="12" fill="#a16207" stroke="#000" strokeWidth="2" />
-        </g>
+        <g><rect x="25" y="5" width="60" height="10" fill="#a16207" stroke="#000" strokeWidth="2" /><rect x="35" y="-5" width="40" height="12" fill="#a16207" stroke="#000" strokeWidth="2" /></g>
       )}
-      {item === 'pilot_headset' && (
-        <g>
-          <rect x="30" y="20" width="50" height="4" fill="#1e293b" />
-          <rect x="28" y="25" width="8" height="15" fill="#1e293b" />
-          <rect x="74" y="25" width="8" height="15" fill="#1e293b" />
-        </g>
-      )}
-      {item === 'camera' && (
-        <g transform="translate(10, 45)">
-          <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#000" strokeWidth="2" />
-          <circle cx="10" cy="7.5" r="4" fill="#94a3b8" />
-        </g>
-      )}
+      {isNight && <rect x="75" y="45" width="4" height="20" fill="#a16207" />}
     </g>
   );
 };
 
-const VoxelFelipe = ({ isActive, isDancing, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, isDancing?: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
+const VoxelFelipe = ({ isActive, isDancing, isNight, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, isDancing?: boolean, isNight: boolean, size?: string, mood?: string, accessory?: Accessory }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'} ${isDancing ? 'mc-dance' : ''}`}>
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_rgba(0,0,0,0.6)]">
-      {/* PIERNAS */}
-      <rect x="32" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
-      <rect x="52" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
-      <rect x="32" y="94" width="16" height="6" fill="#0c4a6e" />
-      <rect x="52" y="94" width="16" height="6" fill="#0c4a6e" />
-
-      {/* CUERPO */}
-      <rect x="30" y="45" width="40" height="35" fill="#FFFFFF" stroke="#000" strokeWidth="2" />
-      <rect x="40" y="52" width="20" height="18" fill="#0c4a6e" />
-      <rect x="44" y="56" width="12" height="10" fill="#FFFFFF" />
-      
-      {/* BRAZOS */}
-      <rect x="20" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      <rect x="20" y="45" width="10" height="6" fill="#0c4a6e" />
-      <rect x="70" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      <rect x="70" y="45" width="10" height="6" fill="#0c4a6e" />
-
-      {/* CABEZA */}
+    <svg viewBox="0 0 100 100" className={`w-full h-full drop-shadow-xl ${isNight ? 'brightness-75' : ''}`}>
+      <rect x="30" y="45" width="40" height="35" fill={isNight ? "#ddd" : "#fff"} stroke="#000" strokeWidth="2" />
       <rect x="35" y="15" width="30" height="30" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      <rect x="33" y="10" width="34" height="12" fill="#111" />
-      <rect x="33" y="22" width="6" height="10" fill="#111" />
-      <rect x="61" y="22" width="6" height="10" fill="#111" />
-      <rect x="39" y="18" width="8" height="4" fill="#111" />
-      <rect x="53" y="18" width="8" height="4" fill="#111" />
-
       <rect x="40" y="30" width="4" height="6" fill="#0c4a6e" />
       <rect x="56" y="30" width="4" height="6" fill="#0c4a6e" />
-      <rect x="40" y="32" width="1" height="2" fill="#fff" />
-      <rect x="56" y="32" width="1" height="2" fill="#fff" />
-      
-      {mood === "happy" || isDancing ? (
-        <rect x="44" y="40" width="12" height="2" fill="#000" />
-      ) : (
-        <rect x="46" y="40" width="8" height="2" fill="#000" opacity="0.4" />
-      )}
-
-      <AccessoryLayer item={accessory} />
+      <AccessoryLayer item={accessory} isNight={isNight} />
+      {isNight && <rect x="72" y="40" width="10" height="10" fill="#ffaa00" className="animate-pulse" />}
     </svg>
+    {isDancing && <ParticleEffect />}
   </div>
 );
 
 export default function App() {
   const [state, setState] = useState<GameState>({
-    screen: 'intro',
-    activeMission: 1,
-    currentQuestionIndex: 0,
-    userAnswer: '',
-    attempts: 0,
-    score: 0,
-    feedbackType: 'none',
-    feedbackMessage: '',
-    showExplanation: false,
-    syncProgress: 0,
-    stamps: [],
-    postcards: {},
-    diaries: {},
-    isGeneratingPostcard: false,
-    equippedAccessory: 'none',
-    unlockedAccessories: ['none'],
-    scrambleWords: [],
-    selectedWords: []
+    screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 80, isNight: new Date().getHours() > 19 || new Date().getHours() < 7,
+    feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {}, isGeneratingPostcard: false,
+    equippedAccessory: 'none', unlockedAccessories: ['none'], scrambleWords: [], selectedWords: [], chatHistory: [], dailyChallenge: 'Loading...'
   });
 
   const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const initAudio = async () => {
-    if (!audioContextRef.current) {
-      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-      audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
-    }
-    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
-    }
-    return audioContextRef.current;
-  };
+  useEffect(() => {
+    document.getElementById('game-body')?.classList.toggle('is-night', state.isNight);
+  }, [state.isNight]);
 
-  const playTTS = async (text: string, onEnd?: () => void) => {
+  useEffect(() => {
+    const fetchDaily = async () => {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const res = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: 'Tell a 10-year-old one fun fact about dinosaurs in very simple English (10 words max).'
+      });
+      setState(s => ({ ...s, dailyChallenge: res.text || 'Dinos are cool!' }));
+    };
+    fetchDaily();
+  }, []);
+
+  const playTTS = async (text: string) => {
     try {
       setIsAudioLoading(true);
-      const ctx = await initAudio();
-      if (!ctx) return;
+      if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-        },
+        contents: [{ parts: [{ text }] }],
+        config: { responseModalities: [Modality.AUDIO], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } },
       });
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(ctx.destination);
-        source.onended = () => {
-          setIsAudioLoading(false);
-          if (onEnd) onEnd();
-        };
+      const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64) {
+        const buffer = await decodeAudioData(decode(base64), audioContextRef.current, 24000, 1);
+        const source = audioContextRef.current.createBufferSource();
+        source.buffer = buffer; source.connect(audioContextRef.current.destination);
+        source.onended = () => setIsAudioLoading(false);
         source.start();
-      } else {
-        setIsAudioLoading(false);
-      }
-    } catch (e) {
-      console.error("TTS Error:", e);
-      setIsAudioLoading(false);
-    }
+      } else setIsAudioLoading(false);
+    } catch { setIsAudioLoading(false); }
   };
 
-  const playSystemSound = async (type: 'success' | 'error' | 'missionComplete') => {
-    const ctx = await initAudio();
-    if (!ctx) return;
-    
-    const playNote = (freq: number, startTime: number, duration: number, type: OscillatorType = 'square') => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
-      gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
-      gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + startTime + 0.01);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startTime + duration);
-      osc.start(ctx.currentTime + startTime);
-      osc.stop(ctx.currentTime + startTime + duration);
-    };
-
-    if (type === 'success') {
-      const tempo = 0.12;
-      playNote(659.25, 0 * tempo, 0.1); 
-      playNote(659.25, 1 * tempo, 0.1); 
-      playNote(659.25, 2 * tempo, 0.1); 
-      playNote(523.25, 3 * tempo, 0.1); 
-      playNote(659.25, 4 * tempo, 0.1); 
-      playNote(783.99, 6 * tempo, 0.15); 
-      playNote(392.00, 8 * tempo, 0.2); 
-    } else if (type === 'missionComplete') {
-      const t = 0.16;
-      playNote(659.25, 0*t, 0.15); 
-      playNote(493.88, 1*t, 0.15); 
-      playNote(523.25, 2*t, 0.15); 
-      playNote(587.33, 3*t, 0.15); 
-      playNote(523.25, 4*t, 0.15); 
-      playNote(493.88, 5*t, 0.15); 
-      playNote(440.00, 6*t, 0.15); 
-      playNote(440.00, 7.5*t, 0.15); 
-      playNote(523.25, 9*t, 0.15); 
-      playNote(659.25, 10.5*t, 0.15); 
-      playNote(587.33, 12*t, 0.15); 
-      playNote(523.25, 13.5*t, 0.15); 
-      playNote(493.88, 15*t, 0.2); 
-      playNote(523.25, 17*t, 0.15); 
-      playNote(587.33, 18.5*t, 0.15); 
-      playNote(659.25, 20*t, 0.15); 
-      playNote(523.25, 21.5*t, 0.15); 
-      playNote(440.00, 23*t, 0.15); 
-      playNote(440.00, 25*t, 0.35); 
-    } else {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.setValueAtTime(120, ctx.currentTime);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-      osc.start(); osc.stop(ctx.currentTime + 0.3);
-    }
-  };
-
-  const missions = [
-    { id: 1, title: "Space Adventure", icon: "🚀" },
-    { id: 2, title: "Deep Ocean", icon: "🌊" },
-    { id: 3, title: "Winter World", icon: "❄️" },
-    { id: 4, title: "Magic Forest", icon: "🍄" },
-    { id: 5, title: "Dino Land", icon: "🦖" }
-  ];
-
-  const prizes = [
-    { id: 1, icon: "🥉", name: "Bronze Coin" },
-    { id: 2, icon: "🥈", name: "Silver Coin" },
-    { id: 3, icon: "🥇", name: "Gold Coin" },
-    { id: 4, icon: "🏆", name: "Emerald Trophy" },
-    { id: 5, icon: "👑", name: "Diamond Crown" }
-  ];
-
-  const prepareScramble = (index: number) => {
-    const q = SCRAMBLE_QUESTIONS[index];
-    if (!q) return;
-    const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
-    setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
-    playTTS(q.sentence);
-  };
-
-  const handleWordClick = (word: string, index: number) => {
-    if (isAudioLoading) return;
-    playTTS(word);
-    setState(s => {
-      const newScramble = [...s.scrambleWords];
-      newScramble.splice(index, 1);
-      return { ...s, selectedWords: [...s.selectedWords, word], scrambleWords: newScramble };
-    });
-  };
-
-  const handleRemoveWord = (word: string, index: number) => {
-    if (isAudioLoading) return;
-    setState(s => {
-      const newSelected = [...s.selectedWords];
-      newSelected.splice(index, 1);
-      return { ...s, selectedWords: newSelected, scrambleWords: [...s.scrambleWords, word] };
-    });
-  };
-
-  const checkScramble = () => {
-    const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
-    if (state.selectedWords.join(' ') === currentQ.sentence) {
-      playSystemSound('success');
-      playTTS("Perfect! You got it right.");
-      setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
-    } else {
-      playSystemSound('error');
-      playTTS("Try again, you can do it!");
-      prepareScramble(state.currentQuestionIndex);
-    }
-  };
-
-  const generateAIPostcard = async (missionId: number, missionTitle: string) => {
-    setState(s => ({ ...s, isGeneratingPostcard: true }));
+  const handleChat = async (input: string) => {
+    if (!input || isChatLoading) return;
+    const newHistory: ChatMessage[] = [...state.chatHistory, { role: 'user', text: input }];
+    setState(s => ({ ...s, chatHistory: newHistory, hunger: Math.max(0, s.hunger - 5) }));
+    setIsChatLoading(true);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const imgRes = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A vibrant voxel 3D Minecraft scene postcard of a kid at ${missionTitle}. Cinematic lighting, blocky art style.` }] },
-        config: { imageConfig: { aspectRatio: "1:1" } }
-      });
-      const textRes = await ai.models.generateContent({
+      const res = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Write a short 1-sentence travel diary in English for a kid about visiting ${missionTitle}. Simple A1 English.`,
+        contents: input,
+        config: { systemInstruction: "You are Felipe, a voxel dinosaur traveler. Talk to a kid in very simple A1 English. Be short and happy." }
       });
-      let imageUrl = "";
-      const candidates = imgRes.candidates;
-      if (candidates && candidates[0]?.content?.parts) {
-        for (const part of candidates[0].content.parts) {
-          if (part.inlineData) { imageUrl = `data:image/png;base64,${part.inlineData.data}`; break; }
-        }
-      }
-      setState(s => ({ 
-        ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
-        diaries: { ...s.diaries, [missionId]: textRes.text || "This was so much fun!" },
-        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, (['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'] as Accessory[])[missionId-1]])),
-        isGeneratingPostcard: false 
-      }));
-    } catch (e) {
-      setState(s => ({ ...s, isGeneratingPostcard: false }));
-    }
+      const felipeText = res.text || "Cool!";
+      setState(s => ({ ...s, chatHistory: [...newHistory, { role: 'felipe', text: felipeText }] }));
+      playTTS(felipeText);
+    } finally { setIsChatLoading(false); }
   };
 
-  useEffect(() => {
-    if (state.screen === 'playing') {
-      if (state.activeMission < 5) {
-        const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
-        const q = currentMissionQs[state.currentQuestionIndex];
-        if (q) playTTS(q.text.replace('________', '...'));
-      } else {
-        const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
-        if (q) playTTS(q.sentence);
-      }
+  const checkAnswer = (opt: string, currentQ: any) => {
+    if (opt === currentQ.correctAnswer) {
+      setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, hunger: Math.min(100, s.hunger + 15), showExplanation: true }));
+      playTTS("Yes! Correct!");
+    } else {
+      setState(s => ({ ...s, hunger: Math.max(0, s.hunger - 10) }));
+      playTTS("No, try again!");
     }
-  }, [state.currentQuestionIndex, state.activeMission, state.screen]);
-
-  useEffect(() => {
-    if (state.screen === 'game_over') {
-      playSystemSound('missionComplete');
-    }
-  }, [state.screen]);
+  };
 
   if (state.screen === 'intro') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-mc-green/20">
-        <div className="mc-panel p-12 max-w-lg w-full text-center">
-          <h1 className="mc-logo mb-12">FELIPE<br/>QUEST</h1>
-          <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-56 h-56" accessory={state.equippedAccessory} /></div>
-          <div className="flex flex-col gap-6">
-            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">PLAY GAME</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY TRAVELS</button>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        <div className="mc-panel p-10 max-w-lg w-full text-center">
+          <h1 className="mc-logo mb-4">FELIPE QUEST</h1>
+          <p className="text-black font-bold mb-8 uppercase text-xs tracking-widest bg-yellow-400 p-2 border-2 border-black animate-pulse">
+             Today's Hint: {state.dailyChallenge}
+          </p>
+          <div className="flex justify-center mb-8"><VoxelFelipe isActive={true} isDancing={state.hunger > 50} isNight={state.isNight} size="w-48 h-48" accessory={state.equippedAccessory} /></div>
+          <div className="flex flex-col gap-4">
+            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-lg py-4">START ADVENTURE</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'chat' }))} className="mc-button w-full bg-cyan-400">TALK TO FELIPE</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-orange-400">MY PASSPORT</button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (state.screen === 'mission_select') {
+  if (state.screen === 'chat') {
     return (
       <div className="min-h-screen p-6 flex flex-col items-center">
-        <h1 className="mc-logo mb-12 text-center text-3xl">FELIPE QUEST</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-5xl mb-12">
-          {missions.map(m => (
-            <button key={m.id} onClick={() => {
-              if (m.id === 5) {
-                setState(s => ({ ...s, screen: 'playing', activeMission: 5, currentQuestionIndex: 0, score: 0 }));
-                prepareScramble(0);
-              } else {
-                setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, score: 0, userAnswer: '', showExplanation: false }));
-              }
-            }} className="mc-panel p-8 hover:scale-105 transition-all text-center relative group">
-              {state.stamps.includes(m.id) && <div className="absolute top-2 right-2 text-2xl">✅</div>}
-              <div className="text-7xl mb-6 group-hover:scale-110 transition-transform">{m.icon}</div>
-              <h3 className="font-bold text-sky-900 uppercase tracking-widest text-lg">{m.title}</h3>
-            </button>
-          ))}
+        <div className="mc-panel w-full max-w-2xl p-6 bg-[#333]">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="mc-logo text-sm">FELIPE CHAT</h2>
+            <div className="flex gap-2 items-center">
+              <span className="text-xs text-white">HUNGER:</span>
+              <div className="w-24 hunger-bar"><div className="hunger-fill" style={{ width: `${state.hunger}%` }} /></div>
+            </div>
+          </div>
+          <div className="chat-container mb-4">
+            {state.chatHistory.map((m, i) => (
+              <div key={i} className={m.role === 'felipe' ? 'msg-felipe' : 'msg-user'}>
+                {m.role === 'felipe' ? '> FELIPE: ' : '> ME: '}{m.text}
+              </div>
+            ))}
+            {isChatLoading && <div className="msg-felipe animate-pulse">FELIPE IS THINKING...</div>}
+          </div>
+          <div className="flex gap-2">
+            <input id="chat-in" type="text" className="flex-1 bg-black text-white border-4 border-white p-2 font-mono outline-none" placeholder="Say hello in English..." onKeyDown={(e) => { if(e.key === 'Enter') { handleChat(e.currentTarget.value); e.currentTarget.value = ''; } }} />
+            <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button">EXIT</button>
+          </div>
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button text-xs">GO BACK</button>
       </div>
     );
   }
 
   if (state.screen === 'playing') {
-    const handleExitMission = () => setState(s => ({ ...s, screen: 'mission_select' }));
-
-    if (state.activeMission === 5) {
-      const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
-      return (
-        <div className="min-h-screen flex flex-col items-center p-6">
-          <header className="w-full max-w-3xl flex justify-between items-center mb-8">
-            <button onClick={handleExitMission} className="mc-button text-[8px] bg-[#e74c3c] text-white py-2 px-3">EXIT MENU</button>
-            <h1 className="mc-logo text-lg md:text-xl">FELIPE QUEST</h1>
-            <div className="mc-panel px-4 py-2 text-sky-900 font-bold">XP: {state.score}</div>
-          </header>
-          
-          <main className="w-full max-w-3xl mc-panel p-10 relative">
-            {isAudioLoading && (
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full"></div>
-                <span className="text-[10px] font-bold text-black uppercase">Felipe Talking...</span>
-              </div>
-            )}
-            
-            <div className="flex items-start gap-6 mb-10">
-              <VoxelFelipe isActive={false} mood="thinking" accessory={state.equippedAccessory} />
-              <div className="chat-bubble flex-1 shadow-lg">
-                <p className="text-xl font-bold text-sky-700 italic">"{q.translation}"</p>
-              </div>
-            </div>
-
-            <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
-              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest text-center">Listen carefully...</p>}
-              {state.selectedWords.map((w, i) => (
-                <button key={i} disabled={isAudioLoading} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
-                  {w}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap gap-4 justify-center mb-12">
-              {state.scrambleWords.map((w, i) => (
-                <button key={i} disabled={isAudioLoading} onClick={() => handleWordClick(w, i)} 
-                  className="mc-button text-xs py-4 px-6">
-                  {w}
-                </button>
-              ))}
-            </div>
-
-            {state.showExplanation ? (
-              <div className="bg-[#55aa55] p-6 border-4 border-black text-white text-center animate-in zoom-in">
-                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">WELL DONE!</h3>
-                <button onClick={() => {
-                  if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
-                    const next = state.currentQuestionIndex + 1;
-                    setState(s => ({ ...s, currentQuestionIndex: next, showExplanation: false }));
-                    prepareScramble(next);
-                  } else {
-                    setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
-                    generateAIPostcard(5, "Dinosaur World");
-                  }
-                }} className="mc-button bg-[#ffffff] text-black w-full">NEXT LEVEL »</button>
-              </div>
-            ) : (
-              <button disabled={state.scrambleWords.length > 0 || isAudioLoading} onClick={checkScramble} 
-                className="mc-button w-full py-6 text-lg bg-[#3498db] text-white">
-                VERIFY SENTENCE
-              </button>
-            )}
-          </main>
-        </div>
-      );
-    }
-
-    const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
-    const currentQ = currentMissionQs[state.currentQuestionIndex];
-    if (!currentQ) return null;
-
+    const missionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
+    const currentQ = missionQs[state.currentQuestionIndex];
     return (
       <div className="min-h-screen flex flex-col items-center p-6">
         <header className="w-full max-w-3xl flex justify-between items-center mb-8">
-          <button onClick={handleExitMission} className="mc-button text-[8px] bg-[#e74c3c] text-white py-2 px-3">EXIT MENU</button>
-          <h1 className="mc-logo text-lg md:text-xl">FELIPE QUEST</h1>
-          <div className="mc-panel px-4 py-2 text-sky-900 font-bold">XP: {state.score}</div>
+           <div className="flex gap-4">
+             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-500 text-white text-[10px]">EXIT</button>
+             <div className="mc-panel px-2 text-[10px] flex items-center">XP: {state.score}</div>
+           </div>
+           <div className="flex flex-col items-end">
+             <span className="text-[10px] text-white">FELIPE ENERGY</span>
+             <div className="w-32 hunger-bar"><div className="hunger-fill" style={{ width: `${state.hunger}%` }} /></div>
+           </div>
         </header>
-        
-        <main className="w-full max-w-3xl mc-panel p-10">
-          <div className="flex items-start gap-8 mb-12">
-            <VoxelFelipe isActive={state.showExplanation} size="w-40 h-40" accessory={state.equippedAccessory} />
-            <div className="chat-bubble flex-1 shadow-lg">
-              <h3 className="text-2xl font-bold text-gray-800 leading-relaxed">
-                 {currentQ.text.split('________').map((part, i, arr) => (
-                    <React.Fragment key={i}>
-                      {part}{i < arr.length - 1 && <span className="text-orange-600 underline font-black decoration-4">{state.userAnswer || "..."}</span>}
-                    </React.Fragment>
-                  ))}
-              </h3>
-            </div>
+        <main className="mc-panel w-full max-w-2xl p-8 relative">
+          <div className="flex gap-6 mb-8">
+             <VoxelFelipe isActive={state.showExplanation} mood={state.hunger < 20 ? 'sad' : 'happy'} isNight={state.isNight} isDancing={state.showExplanation} accessory={state.equippedAccessory} />
+             <div className="bg-white border-4 border-black p-4 flex-1 text-black font-bold text-xl italic relative">
+               "{currentQ.text.replace('________', '____')}"
+               <div className="absolute -left-4 top-4 w-4 h-4 bg-white border-l-4 border-b-4 border-black rotate-45"></div>
+             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-            {currentQ.options.map((opt, i) => (
-              <button key={i} onClick={() => {
-                const isCorrect = opt === currentQ.correctAnswer;
-                if (isCorrect) {
-                  playSystemSound('success');
-                  playTTS("Correct! Perfect job.");
-                  setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
-                } else {
-                  playSystemSound('error');
-                  playTTS("Oops! Try again.");
-                }
-              }} disabled={state.showExplanation || isAudioLoading} className={`mc-button text-sm py-6 ${
-                  state.userAnswer === opt 
-                    ? (opt === currentQ.correctAnswer ? 'bg-[#55aa55] text-white' : 'bg-[#aa0000] text-white') 
-                    : ''
-                }`}>
-                {opt}
+          <div className="grid grid-cols-2 gap-4">
+            {currentQ.options.map((o, i) => (
+              <button key={i} disabled={state.showExplanation || isAudioLoading} onClick={() => checkAnswer(o, currentQ)} className="mc-button text-xs py-4">
+                {o.toUpperCase()}
               </button>
             ))}
           </div>
-
           {state.showExplanation && (
-            <div className="mc-panel p-6 bg-[#ffff55] border-black border-4 animate-in slide-in-from-bottom">
-              <p className="text-2xl font-bold text-black italic text-center mb-6">"{currentQ.translation}"</p>
+            <div className="mt-8 p-4 bg-yellow-200 border-4 border-black text-black animate-bounce text-center">
+              <p className="font-bold mb-4">"{currentQ.translation}"</p>
               <button onClick={() => {
-                  if (state.currentQuestionIndex + 1 < currentMissionQs.length) {
-                    setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, userAnswer: '', showExplanation: false }));
-                  } else {
-                    setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, s.activeMission])) }));
-                    generateAIPostcard(state.activeMission, missions.find(m => m.id === state.activeMission)?.title || "");
-                  }
-                }} className="mc-button w-full bg-[#ffffff] text-black">CONTINUE JOURNEY »</button>
+                if (state.currentQuestionIndex + 1 < missionQs.length) setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false, userAnswer: '' }));
+                else setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
+              }} className="mc-button w-full bg-white">CONTINUE QUEST »</button>
             </div>
           )}
         </main>
@@ -517,90 +240,56 @@ export default function App() {
     );
   }
 
-  if (state.screen === 'passport') {
-    return (
-      <div className="min-h-screen p-8 flex flex-col items-center bg-[#8b8b8b]">
-        <h1 className="mc-logo mb-12 text-3xl">PASSPORT</h1>
-        <div className="mc-panel p-12 w-full max-w-4xl bg-white mb-10">
-          <div className="mb-12">
-            <h3 className="font-bold text-sky-600 mb-6 uppercase tracking-widest text-lg">MY SKINS</h3>
-            <div className="flex gap-6 overflow-x-auto pb-4 mb-8">
-              {state.unlockedAccessories.map(acc => (
-                <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
-                  className={`w-24 h-24 mc-panel flex items-center justify-center text-5xl transition-all ${state.equippedAccessory === acc ? 'bg-[#55ff55] scale-110' : 'bg-[#e0e0e0] opacity-50'}`}>
-                  {{ none: "👤", sunglasses: "🕶️", safari_hat: "🤠", pilot_headset: "🎧", party_ears: "🐭", camera: "📷" }[acc]}
-                </button>
-              ))}
-            </div>
-
-            {/* SECCION DE PREMIOS PROGRESIVOS */}
-            <h3 className="font-bold text-orange-600 mb-6 uppercase tracking-widest text-lg">REWARDS COLLECTED</h3>
-            <div className="flex gap-4 mb-10 overflow-x-auto pb-2">
-              {prizes.map((p, idx) => (
-                <div key={p.id} className={`mc-panel p-4 flex flex-col items-center justify-center min-w-[120px] transition-all ${state.stamps.length > idx ? 'bg-[#ffff55] opacity-100' : 'bg-[#dddddd] opacity-20'}`}>
-                  <span className="text-5xl mb-2">{p.icon}</span>
-                  <span className="text-[10px] font-bold text-black uppercase text-center">{p.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
-            {missions.map(m => (
-              <div key={m.id} className={`mc-panel p-8 ${state.stamps.includes(m.id) ? 'bg-[#ffffff]' : 'bg-[#888888] opacity-30'}`}>
-                <div className="flex items-center gap-6 mb-6">
-                  <span className="text-5xl">{m.icon}</span>
-                  <h4 className="font-bold text-black uppercase text-xl">{m.title}</h4>
-                </div>
-                {state.postcards[m.id] && (
-                  <div>
-                    <img src={state.postcards[m.id]} className="w-full border-4 border-black shadow-lg mb-4" />
-                    <p className="text-sm italic font-bold text-black leading-relaxed">"{state.diaries[m.id]}"</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full py-6 text-xl">RETURN HOME</button>
-        </div>
+  if (state.screen === 'mission_select') return (
+    <div className="min-h-screen p-8 flex flex-col items-center">
+      <h1 className="mc-logo mb-8">SELECT WORLD</h1>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl">
+        {missions.map(m => (
+          <button key={m.id} onClick={() => setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false, userAnswer: '' }))} className="mc-panel p-6 hover:scale-105 transition-all flex flex-col items-center gap-4">
+            <span className="text-6xl">{m.icon}</span>
+            <span className="font-bold text-sm text-black">{m.title}</span>
+            {state.stamps.includes(m.id) && <span className="text-green-600 font-bold">COMPLETED</span>}
+          </button>
+        ))}
       </div>
-    );
-  }
+      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mt-8 mc-button">BACK</button>
+    </div>
+  );
 
-  if (state.screen === 'game_over') {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#34495e]">
-        <div className="mc-panel p-16 text-center max-w-lg w-full">
-           <h1 className="mc-logo mb-12 text-2xl">FELIPE QUEST</h1>
-           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase animate-bounce">MISSION UNLOCKED!</h3>
-           <div className="mb-10 min-h-[300px] flex items-center justify-center">
-             {state.isGeneratingPostcard ? (
-               <div className="flex flex-col items-center">
-                 <div className="w-16 h-16 border-8 border-black border-t-transparent animate-spin rounded-full mb-6"></div>
-                 <p className="font-bold text-black tracking-widest text-xs">COLLECTING STAMP...</p>
-               </div>
-             ) : (
-               <div className="flex flex-col items-center animate-in zoom-in">
-                 <div className="mb-12">
-                   <VoxelFelipe isActive={true} isDancing={true} size="w-64 h-64" accessory={state.equippedAccessory} mood="happy" />
-                 </div>
-                 <div className="mb-6 flex gap-2">
-                    {state.stamps.map((s, i) => (
-                      <span key={i} className="text-4xl">{prizes[i]?.icon}</span>
-                    ))}
-                 </div>
-                 {state.postcards[state.activeMission] && <img src={state.postcards[state.activeMission]} className="w-full border-4 border-black shadow-2xl mb-6" />}
-                 <p className="text-lg font-bold text-black italic">"{state.diaries[state.activeMission]}"</p>
-               </div>
-             )}
-           </div>
-           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full py-6 text-xl mb-6">ALBUM & DIARY</button>
-           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="text-black font-bold uppercase text-xs tracking-widest">CONTINUE QUEST</button>
+  if (state.screen === 'passport') return (
+    <div className="min-h-screen p-8 flex flex-col items-center bg-[#555]">
+      <div className="mc-panel p-10 w-full max-w-2xl bg-white">
+        <h1 className="mc-logo text-black mb-8 text-center">MY PASSPORT</h1>
+        <div className="mb-8 flex gap-4 overflow-x-auto pb-4">
+          {['none', 'sunglasses', 'safari_hat', 'pilot_headset'].map(acc => (
+            <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc as any }))} className={`mc-panel p-4 min-w-[80px] flex items-center justify-center ${state.equippedAccessory === acc ? 'bg-green-400' : 'bg-gray-200'}`}>
+              {acc === 'none' ? '👤' : acc === 'sunglasses' ? '🕶️' : acc === 'safari_hat' ? '🤠' : '🎧'}
+            </button>
+          ))}
         </div>
+        <div className="grid grid-cols-2 gap-4">
+          {missions.map(m => (
+            <div key={m.id} className={`p-4 border-2 border-dashed border-black ${state.stamps.includes(m.id) ? 'bg-white' : 'bg-gray-300 opacity-30'}`}>
+               <span className="text-4xl">{m.icon}</span>
+               <p className="text-xs font-bold text-black">{m.title}</p>
+            </div>
+          ))}
+        </div>
+        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full mt-8">RETURN HOME</button>
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (state.screen === 'game_over') return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-black/80">
+      <div className="mc-panel p-10 text-center max-w-sm w-full bg-white">
+        <h2 className="mc-logo text-green-600 mb-6">MISSION WIN!</h2>
+        <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-40 h-40" accessory={state.equippedAccessory} />
+        <p className="text-black font-bold my-6">YOU ARE AN ENGLISH MASTER!</p>
+        <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full">SEE REWARDS</button>
+      </div>
+    </div>
+  );
 
   return null;
 }
-
