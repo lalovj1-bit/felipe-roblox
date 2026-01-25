@@ -19,41 +19,41 @@
             background-color: var(--mario-blue);
             color: #ffffff;
             margin: 0;
-            /* Scroll habilitado correctamente */
+            /* Scroll habilitado para mouse y táctil */
             overflow-y: auto !important; 
             overflow-x: hidden;
             image-rendering: pixelated;
             user-select: none;
-            font-size: 1.6rem; /* Escala aumentada 20% extra */
+            font-size: 1.4rem; /* Ajuste: 10% más chico que el anterior 1.6rem */
         }
         
         .mc-logo {
             font-family: 'Press Start 2P', cursive;
             text-transform: uppercase;
-            text-shadow: 4px 4px 0px #000;
-            line-height: 1.5;
+            text-shadow: 3px 3px 0px #000;
+            line-height: 1.4;
         }
 
         .mario-button {
             background-color: #f8f8f8;
-            border: 6px solid #000;
-            box-shadow: 7px 7px 0px #000;
+            border: 5px solid #000;
+            box-shadow: 6px 6px 0px #000;
             color: #000;
             font-family: 'Press Start 2P', cursive;
             transition: all 0.05s;
             cursor: pointer;
-            padding: 20px;
+            padding: 16px;
         }
 
         .mario-button:active {
-            transform: translate(3px, 3px);
+            transform: translate(2px, 2px);
             box-shadow: 2px 2px 0px #000;
         }
 
         .mario-panel {
             background-color: #f8f8f8;
-            border: 8px solid #000;
-            box-shadow: 12px 12px 0px rgba(0,0,0,0.5);
+            border: 6px solid #000;
+            box-shadow: 8px 8px 0px rgba(0,0,0,0.5);
             color: #000;
         }
 
@@ -62,14 +62,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-            padding-bottom: 60px;
+            padding: 15px;
+            padding-bottom: 50px;
         }
 
         /* Animaciones */
         @keyframes bounce-small {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
         }
         .animate-felipe { animation: bounce-small 2s infinite; }
 
