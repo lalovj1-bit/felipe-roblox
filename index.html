@@ -3,64 +3,50 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FELIPE QUEST - AI Adventure</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SUPER FELIPE - Mario Adventure</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --mc-grey: #c6c6c6;
-            --mc-dark-grey: #585858;
+            --mc-grey: #e0e0e0;
+            --mc-dark-grey: #707070;
             --mc-light-grey: #ffffff;
             --mc-border: #000000;
-            --mc-green: #55aa55;
-            --mc-shadow: #373737;
-            --sky-day: #4a80ff;
-            --sky-night: #1a1a2e;
         }
         body {
             font-family: 'VT323', monospace;
-            background-color: var(--sky-day);
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.05) 2px, transparent 2px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 2px, transparent 2px);
-            background-size: 32px 32px;
+            background-color: #4a80ff;
             color: #ffffff;
             min-height: 100vh;
             margin: 0;
-            overflow-x: hidden;
+            overflow: hidden;
             image-rendering: pixelated;
-            transition: background-color 2s ease;
+            user-select: none;
         }
         
-        body.is-night {
-            background-color: var(--sky-night);
-        }
-
         .mc-logo {
             font-family: 'Press Start 2P', cursive;
-            font-size: 2rem;
-            color: #FFFFFF;
             text-transform: uppercase;
-            text-shadow: 4px 4px 0px #373737;
+            text-shadow: 2px 2px 0px #000;
         }
 
         .mc-button {
             background-color: var(--mc-grey);
-            border: 4px solid var(--mc-border);
+            border: 3px solid var(--mc-border);
             border-top-color: var(--mc-light-grey);
             border-left-color: var(--mc-light-grey);
             border-right-color: var(--mc-dark-grey);
             border-bottom-color: var(--mc-dark-grey);
-            padding: 10px 20px;
-            color: #373737;
+            padding: 8px 12px;
+            color: #000;
             font-family: 'Press Start 2P', cursive;
-            font-size: 0.7rem;
             transition: all 0.1s;
             cursor: pointer;
+            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.1);
         }
 
-        .mc-button:active:not(:disabled) {
+        .mc-button:active {
             transform: translateY(2px);
             border-top-color: var(--mc-dark-grey);
             border-left-color: var(--mc-dark-grey);
@@ -78,47 +64,8 @@
             color: #000;
         }
 
-        .chat-container {
-            background: #222;
-            border: 4px solid #000;
-            height: 300px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 15px;
-            font-family: 'VT323', monospace;
-            font-size: 1.5rem;
-        }
-
-        .msg-felipe { color: #55ff55; }
-        .msg-user { color: #55ffff; }
-
-        @keyframes xp-particle {
-            0% { transform: translate(0,0) scale(1); opacity: 1; }
-            100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0); opacity: 0; }
-        }
-        .xp-orb {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: #77ff77;
-            border: 1px solid #000;
-            animation: xp-particle 1s forwards ease-out;
-            pointer-events: none;
-        }
-
-        .hunger-bar {
-            height: 12px;
-            background: #442222;
-            border: 2px solid #000;
-            overflow: hidden;
-        }
-        .hunger-fill {
-            height: 100%;
-            background: #ff5555;
-            transition: width 0.3s ease;
-        }
+        /* Prevent long press context menu on mobile */
+        * { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
     </style>
 <script type="importmap">
 {
@@ -133,7 +80,8 @@
 }
 </script>
 </head>
-<body id="game-body">
+<body>
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>
+</html>
