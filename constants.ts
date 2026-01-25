@@ -51,39 +51,28 @@ export const QUESTIONS: Question[] = [
   { id: 24, mission: 3, text: "I want to be ________.", options: ["strong", "sad", "weak", "tiny"], correctAnswer: "strong", hint: "Like a superhero.", translation: "Quiero ser fuerte.", explanation: "Strong es fuerte." },
   { id: 25, mission: 3, text: "Pass me the ________ please.", options: ["helmet", "apple", "cat", "chair"], correctAnswer: "helmet", hint: "Protect your head.", translation: "Pásame el casco por favor.", explanation: "Helmet es casco." },
 
-  // MUNDO 4: DEEP WOODS 🌲
-  { id: 31, mission: 4, text: "The mountain is very ________.", options: ["high", "salty", "delicious", "soft"], correctAnswer: "high", hint: "Close to the clouds.", translation: "La montaña es muy alta.", explanation: "High es alto." },
-  { id: 32, mission: 4, text: "Don't touch the ________!", options: ["fire", "water", "air", "moon"], correctAnswer: "fire", hint: "It is hot.", translation: "¡No toques el fuego!", explanation: "Fire es fuego." },
-  { id: 33, mission: 4, text: "I can hear the ________.", options: ["wind", "bread", "sock", "phone"], correctAnswer: "wind", hint: "Air moving fast.", translation: "Puedo oír el viento.", explanation: "Wind es viento." },
-  { id: 34, mission: 4, text: "We must protect the ________.", options: ["planet", "pizza", "ball", "hat"], correctAnswer: "planet", hint: "Our home, Earth.", translation: "Debemos proteger el planeta.", explanation: "Planet es planeta." },
-
-  // MISION 6: CAZADOR DE PALABRAS 🔊 (Mecánica de Audio -> Imagen)
-  { id: 61, mission: 6, text: "headphones", options: ["🎧", "👓", "⌚", "🎒"], correctAnswer: "🎧", hint: "", translation: "Auriculares", explanation: "Headphones" },
-  { id: 62, mission: 6, text: "telescope", options: ["🔭", "🔬", "🔦", "📷"], correctAnswer: "🔭", hint: "", translation: "Telescopio", explanation: "Telescope" },
-  { id: 63, mission: 6, text: "joystick", options: ["🕹️", "🖱️", "⌨️", "💻"], correctAnswer: "🕹️", hint: "", translation: "Palanca de mando", explanation: "Joystick" },
-  { id: 64, mission: 6, text: "compass", options: ["🧭", "🗺️", "🔦", "⛺"], correctAnswer: "🧭", hint: "", translation: "Brújula", explanation: "Compass" },
-  { id: 65, mission: 6, text: "satellite", options: ["🛰️", "🚀", "🛸", "☄️"], correctAnswer: "🛰️", hint: "", translation: "Satélite", explanation: "Satellite" },
-  { id: 66, mission: 6, text: "microscope", options: ["🔬", "🔭", "🧪", "🧫"], correctAnswer: "🔬", hint: "", translation: "Microscopio", explanation: "Microscope" },
-  { id: 67, mission: 6, text: "sneakers", options: ["👟", "👕", "👖", "🧢"], correctAnswer: "👟", hint: "", translation: "Zapatillas", explanation: "Sneakers" },
-  { id: 68, mission: 6, text: "skateboard", options: ["🛹", "🚲", "🛵", "🛴"], correctAnswer: "🛹", hint: "", translation: "Monopatín", explanation: "Skateboard" },
-  { id: 69, mission: 6, text: "drone", options: ["🚁", "🛸", "✈️", "🚀"], correctAnswer: "🚁", hint: "", translation: "Dron", explanation: "Drone" },
-  { id: 70, mission: 6, text: "smartwatch", options: ["⌚", "📱", "💻", "📟"], correctAnswer: "⌚", hint: "", translation: "Reloj inteligente", explanation: "Smartwatch" }
+  // MISION 6: CAZADOR DE PALABRAS 🔊 (Audio -> Imagen)
+  { id: 61, mission: 6, text: "Headphones", options: ["🎧", "👓", "⌚", "🎒"], correctAnswer: "🎧", hint: "", translation: "Auriculares", explanation: "Headphones" },
+  { id: 62, mission: 6, text: "Telescope", options: ["🔭", "🔬", "🔦", "📷"], correctAnswer: "🔭", hint: "", translation: "Telescopio", explanation: "Telescope" },
+  { id: 63, mission: 6, text: "Joystick", options: ["🕹️", "🖱️", "⌨️", "💻"], correctAnswer: "🕹️", hint: "", translation: "Mando de juego", explanation: "Joystick" },
+  { id: 64, mission: 6, text: "Compass", options: ["🧭", "🗺️", "🔦", "⛺"], correctAnswer: "🧭", hint: "", translation: "Brújula", explanation: "Compass" },
+  { id: 65, mission: 6, text: "Satellite", options: ["🛰️", "🚀", "🛸", "☄️"], correctAnswer: "🛰️", hint: "", translation: "Satélite", explanation: "Satellite" },
+  { id: 66, mission: 6, text: "Microscope", options: ["🔬", "🔭", "🧪", "🧫"], correctAnswer: "🔬", hint: "", translation: "Microscopio", explanation: "Microscope" },
+  { id: 67, mission: 6, text: "Sneakers", options: ["👟", "👕", "👖", "🧢"], correctAnswer: "👟", hint: "", translation: "Zapatillas", explanation: "Sneakers" },
+  { id: 68, mission: 6, text: "Skateboard", options: ["🛹", "🚲", "🛵", "🛴"], correctAnswer: "🛹", hint: "", translation: "Monopatín", explanation: "Skateboard" },
+  { id: 69, mission: 6, text: "Drone", options: ["🚁", "🛸", "✈️", "🚀"], correctAnswer: "🚁", hint: "", translation: "Dron", explanation: "Drone" },
+  { id: 70, mission: 6, text: "Smartwatch", options: ["⌚", "📱", "💻", "📟"], correctAnswer: "⌚", hint: "", translation: "Reloj inteligente", explanation: "Smartwatch" }
 ];
 
 export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
-  // Misión 1: Pixel Academy
   { id: 1, sentence: "The robot can code very fast", translation: "El robot puede programar muy rápido" },
   { id: 2, sentence: "I lost my gaming password today", translation: "Perdí mi contraseña de juego hoy" },
-  // Misión 2: Adventure Street
   { id: 3, sentence: "The city street is very busy", translation: "La calle de la ciudad está muy concurrida" },
   { id: 4, sentence: "I love skating with my friends", translation: "Amo patinar con mis amigos" },
-  // Misión 3: Olympic Arena
   { id: 5, sentence: "The athlete wins the gold medal", translation: "El atleta gana la medalla de oro" },
   { id: 6, sentence: "Exercise is good for your body", translation: "El ejercicio es bueno para tu cuerpo" },
-  // Misión 4: Deep Woods
   { id: 7, sentence: "The wild wolf lives in nature", translation: "El lobo salvaje vive en la naturaleza" },
   { id: 8, sentence: "Protect the earth and the trees", translation: "Protege la tierra y los árboles" },
-  // Misión 5: Star Voyager
   { id: 9, sentence: "Astronauts travel to distant stars", translation: "Los astronautas viajan a estrellas lejanas" },
-  { id: 10, sentence: "Gravity makes the planets move slow", translation: "La gravedad hace que los planetas se muevan lento" }
+  { id: 10, sentence: "Gravity makes the planets move slow", translation: "La gravedad hace que los planeta se muevan lento" }
 ];
