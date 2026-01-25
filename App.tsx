@@ -266,6 +266,7 @@ export default function App() {
               <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Traduce esta oración:</p>
               <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl">
                  <p className="font-bold text-3xl text-blue-900 leading-tight">"{puzzleData.translation}"</p>
+                 {/* El modelo en inglés ya no aparece aquí */}
               </div>
               <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start">
                 {state.selectedWords.map((w, i) => (
@@ -285,7 +286,7 @@ export default function App() {
                       if (newSelected.length === correctWords.length) {
                         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        playTTS(puzzleData.sentence); // Lee la oración final en inglés
+                        playTTS(puzzleData.sentence); // Refuerzo auditivo de la oración completa
                         setTimeout(() => {
                            if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
                            else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
@@ -315,7 +316,7 @@ export default function App() {
                        if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                        const fullSentence = currentQ.text.replace('________', currentQ.correctAnswer);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
-                       playTTS(fullSentence); // Lee la oración completa correcta
+                       playTTS(fullSentence); // Refuerzo auditivo de la oración completa correcta
                     } else {
                        if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.2, 'sawtooth');
                        playTTS("Try another!");
