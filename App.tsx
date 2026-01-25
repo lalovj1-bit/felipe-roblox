@@ -35,13 +35,14 @@ async function decodeAudioData(
 }
 
 const missions = [
-  { id: 1, title: 'Dino Land', icon: '🦖' },
-  { id: 2, title: 'Cyber City', icon: '🤖' },
-  { id: 3, title: 'Sweet Kingdom', icon: '🍭' },
-  { id: 4, title: 'Pirate Cove', icon: '🏴‍☠️' },
-  { id: 5, title: 'Star Galaxy', icon: '🌌' },
+  { id: 1, title: 'Pixel Academy', icon: '💻' },
+  { id: 2, title: 'Adventure Street', icon: '🛹' },
+  { id: 3, title: 'Olympic Arena', icon: '🏆' },
+  { id: 4, title: 'Deep Woods', icon: '🌲' },
+  { id: 5, title: 'Star Voyager', icon: '🌌' },
 ];
 
+// --- MOTOR DE AUDIO 8-BIT ---
 const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: OscillatorType = 'square', volume = 0.06) => {
   if (freq === 0) return;
   const osc = ctx.createOscillator();
@@ -56,13 +57,16 @@ const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: O
   osc.stop(ctx.currentTime + duration);
 };
 
-const playCorrectSound = (ctx: AudioContext) => {
-  [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => play8BitNote(ctx, f, 0.2, 'square', 0.15), i * 60));
+// Efecto Moneda de Mario (Ajustado)
+const playMarioCoin = (ctx: AudioContext) => {
+  play8BitNote(ctx, 987.77, 0.1, 'square', 0.1); // B5
+  setTimeout(() => play8BitNote(ctx, 1318.51, 0.4, 'square', 0.1), 100); // E6
 };
 
+// Melodía de Intro
 const playIntroTheme = (ctx: AudioContext) => {
   const intro = [330, 330, 0, 330, 0, 262, 330, 0, 392, 0, 196];
-  intro.forEach((f, i) => setTimeout(() => play8BitNote(ctx, f, 0.15, 'square', 0.1), i * 100));
+  intro.forEach((f, i) => setTimeout(() => play8BitNote(ctx, f, 0.15, 'square', 0.1), i * 120));
 };
 
 const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
@@ -71,7 +75,7 @@ const VoxelFelipe = ({ isDancing, isSpeaking }: { isDancing?: boolean, isSpeakin
   <div className={`relative w-40 h-40 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
     {isSpeaking && (
       <div className="absolute -top-10 -right-10 bg-white border-4 border-black p-2 rounded-xl text-xs font-bold animate-pulse shadow-md z-10 text-black">
-        📢 HABLANDO...
+        📢 SPEAKING...
       </div>
     )}
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
@@ -89,14 +93,17 @@ export default function App() {
     screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 100,
     isNight: false, feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {},
     isGeneratingPostcard: false, equippedAccessory: 'none', unlockedAccessories: ['none'],
-    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Want to talk in English? (¡Hola! Soy Felipe. ¿Quieres hablar en inglés?)" }], dailyChallenge: ''
+    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Ready for an adventure? (¡Hola! Soy Felipe. ¿Listo para la aventura?)" }], dailyChallenge: ''
   });
 
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isFelipeSpeaking, setIsFelipeSpeaking] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  
   const audioContextRef = useRef<AudioContext | null>(null);
+  const bgmIntervalRef = useRef<number | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const initAudio = async () => {
@@ -109,9 +116,36 @@ export default function App() {
     return audioContextRef.current;
   };
 
+  // --- LÓGICA DE MÚSICA DE FONDO (BGM) CÍCLICA ---
+  const startBGM = async () => {
+    const ctx = await initAudio();
+    if (bgmIntervalRef.current) return;
+
+    // Melodía aventurera cíclica
+    const melody = [
+      261, 329, 392, 523, 392, 329, // Do Mi Sol Do Sol Mi
+      261, 329, 392, 523, 392, 329,
+      349, 440, 523, 698, 523, 440, // Fa La Do Fa Do La
+      293, 392, 493, 587, 493, 392  // Re Sol Si Re Si Sol
+    ];
+    let noteIdx = 0;
+
+    bgmIntervalRef.current = window.setInterval(() => {
+      if (!isMuted && state.screen !== 'intro') {
+        play8BitNote(ctx, melody[noteIdx], 0.25, 'triangle', 0.02);
+      }
+      noteIdx = (noteIdx + 1) % melody.length;
+    }, 250);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (bgmIntervalRef.current) clearInterval(bgmIntervalRef.current);
+    };
+  }, []);
+
   const playTTS = async (text: string) => {
     try {
-      console.log("Felipe intentando hablar:", text);
       const ctx = await initAudio();
       setIsFelipeSpeaking(true);
       
@@ -121,35 +155,22 @@ export default function App() {
         contents: [{ parts: [{ text }] }],
         config: { 
           responseModalities: ['AUDIO'], 
-          speechConfig: { 
-            voiceConfig: { 
-              prebuiltVoiceConfig: { voiceName: 'Kore' } 
-            } 
-          } 
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
         },
       });
 
       const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      
       if (base64) {
-        const audioBuffer = await decodeAudioData(
-          decodeBase64(base64),
-          ctx,
-          24000,
-          1
-        );
-        
+        const audioBuffer = await decodeAudioData(decodeBase64(base64), ctx, 24000, 1);
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer; 
         source.connect(ctx.destination);
         source.onended = () => setIsFelipeSpeaking(false);
         source.start();
       } else {
-        console.warn("No se recibió data de audio de la API");
         setIsFelipeSpeaking(false);
       }
     } catch (error) { 
-      console.error("Error en playTTS:", error);
       setIsFelipeSpeaking(false);
     }
   };
@@ -169,12 +190,11 @@ export default function App() {
       });
       
       const response = await chat.sendMessage({ message: inputMessage });
-      const felipeMsg: ChatMessage = { role: 'felipe', text: response.text || "I'm thinking... (Estoy pensando...)" };
+      const felipeMsg: ChatMessage = { role: 'felipe', text: response.text || "I'm thinking..." };
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, felipeMsg] }));
       playTTS(felipeMsg.text);
     } catch (e) {
-      console.error("Chat error:", e);
-      const errorMsg: ChatMessage = { role: 'felipe', text: "Oh no! My dino-brain is tired. Let's try later! (¡Oh no! Mi cerebro dino está cansado. ¡Probemos luego!)" };
+      const errorMsg: ChatMessage = { role: 'felipe', text: "My brain is tired!" };
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, errorMsg] }));
     } finally {
       setIsTyping(false);
@@ -194,38 +214,50 @@ export default function App() {
   useEffect(() => {
     if (state.screen === 'playing') {
       if (isPuzzleLevel) {
-        let puzzleIdx = 0;
-        if (state.activeMission === 5) {
-          puzzleIdx = 8 + state.currentQuestionIndex;
-        } else {
-          puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
-        }
+        let puzzleIdx = state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
         setState(s => ({ ...s, scrambleWords: shuffle(puzzleData.sentence.split(' ')), selectedWords: [] }));
       } else {
         let qIdx = state.currentQuestionIndex;
         if (qIdx > 4) qIdx -= 1;
         const currentQ = missionQs[qIdx];
-        if (currentQ) {
-          setShuffledOptions(shuffle(currentQ.options));
-        }
+        if (currentQ) setShuffledOptions(shuffle(currentQ.options));
       }
     }
   }, [state.screen, state.currentQuestionIndex, state.activeMission, missionQs, isPuzzleLevel]);
 
+  const Header = () => (
+    <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/50 border-4 border-black">
+      <button onClick={() => { 
+        setState(s => ({ ...s, screen: 'intro' }));
+      }} className="mario-button text-[12px] bg-red-600 text-white p-2 px-6">EXIT</button>
+      <div className="flex items-center gap-4">
+        <button onClick={() => setIsMuted(!isMuted)} className="text-2xl hover:scale-110 transition-transform">
+          {isMuted ? '🔇' : '🔊'}
+        </button>
+        <span className="text-white font-bold text-[18px]">XP {state.score}</span>
+      </div>
+    </header>
+  );
+
   if (state.screen === 'intro') return (
-    <div className="game-container justify-center bg-[#5c94fc]" onClick={async () => { const ctx = await initAudio(); playIntroTheme(ctx); }}>
+    <div className="game-container justify-center bg-[#5c94fc]">
       <div className="mario-panel p-10 max-w-[480px] w-full text-center">
-        <h1 className="mc-logo text-2xl text-black mb-4">SUPER FELIPE Y GUILLE</h1>
+        <h1 className="mc-logo text-2xl text-black mb-4">SUPER FELIPE XL</h1>
         <div className="bg-yellow-400 border-4 border-black inline-block px-8 py-3 mb-8 text-center">
-          <h2 className="text-[16px] font-bold text-black uppercase">Adventure XL Edition</h2>
+          <h2 className="text-[16px] font-bold text-black uppercase">Adventure Edition</h2>
         </div>
         <div className="flex justify-center mb-8">
           <VoxelFelipe isSpeaking={isFelipeSpeaking} />
         </div>
         <div className="space-y-4">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
-          <button onClick={() => setState(s => ({ ...s, screen: 'chat' }))} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">CHAT WITH FELIPE</button>
+          <button onClick={async () => { 
+            const ctx = await initAudio();
+            playIntroTheme(ctx);
+            startBGM();
+            setState(s => ({ ...s, screen: 'mission_select' })); 
+          }} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
+          <button onClick={() => { startBGM(); setState(s => ({ ...s, screen: 'chat' })); }} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">TALK TO FELIPE</button>
           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[12px] py-3 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
         </div>
       </div>
@@ -234,11 +266,7 @@ export default function App() {
 
   if (state.screen === 'chat') return (
     <div className="game-container p-4 bg-sky-300">
-      <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/50 border-4 border-black">
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button text-[12px] bg-red-600 text-white p-2 px-6">BACK</button>
-        <span className="text-white font-bold text-[18px]">DINO CHAT 🦖</span>
-      </header>
-      
+      <Header />
       <div className="mario-panel w-full max-w-[500px] flex-1 bg-white mb-4 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 space-y-4 text-left">
           {state.chatHistory.map((m, i) => (
@@ -249,19 +277,11 @@ export default function App() {
               </div>
             </div>
           ))}
-          {isTyping && <div className="text-gray-400 animate-pulse font-bold text-[14px] ml-12">Felipe is thinking...</div>}
+          {isTyping && <div className="text-gray-400 animate-pulse font-bold text-[14px] ml-12">Thinking...</div>}
           <div ref={chatEndRef} />
         </div>
-        
         <div className="p-4 border-t-8 border-black bg-gray-100 flex gap-4">
-          <input 
-            type="text" 
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder="Talk to me! (¡Háblame!)"
-            className="flex-1 border-4 border-black p-4 font-bold text-[16px] outline-none focus:bg-yellow-50"
-          />
+          <input type="text" value={inputMessage} onChange={(e) => setInputMessage(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Write in English..." className="flex-1 border-4 border-black p-4 font-bold text-[16px] outline-none" />
           <button onClick={handleSendMessage} className="mario-button bg-green-500 text-white text-[16px] px-8">SEND</button>
         </div>
       </div>
@@ -270,6 +290,7 @@ export default function App() {
 
   if (state.screen === 'mission_select') return (
     <div className="game-container p-8 bg-sky-400">
+      <Header />
       <h2 className="mc-logo text-2xl mb-10 text-black text-center">SELECT WORLD</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-[500px]">
         {missions.map(m => {
@@ -279,22 +300,20 @@ export default function App() {
             <button key={m.id} onClick={async () => {
               await initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
-              playTTS(`World ${m.id}`);
+              playTTS(`Entering ${m.title}`);
             }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-yellow-50 border-yellow-500' : 'bg-white'}`}>
               <span className="text-6xl">{m.icon}</span>
               <span className="text-[14px] font-bold uppercase">{m.title}</span>
               {done && (
                 <div className="flex flex-col items-center mt-2 animate-pulse">
                   <span className="text-4xl">{prize?.icon}</span>
-                  <span className="text-xs font-black text-yellow-700 uppercase mt-1">¡PREMIO OBTENIDO!</span>
-                  <span className="text-[10px] font-bold text-gray-600">{prize?.name}</span>
+                  <span className="text-xs font-black text-yellow-700 uppercase mt-1">COMPLETED!</span>
                 </div>
               )}
             </button>
           );
         })}
       </div>
-      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button mt-12 bg-red-600 text-white text-[16px] px-16">EXIT</button>
     </div>
   );
 
@@ -307,29 +326,20 @@ export default function App() {
 
     return (
       <div className="game-container p-4 bg-emerald-600">
-        <header className="w-full max-w-[500px] flex justify-between items-center p-5 mb-8 bg-black/50 border-4 border-black">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button text-[12px] bg-red-600 text-white p-3">QUIT</button>
-          <div className="flex gap-10 text-[16px] font-bold text-white">
-             <span>W {state.activeMission}-{state.currentQuestionIndex + 1}</span>
-             <span className="text-yellow-400">XP {state.score}</span>
-          </div>
-        </header>
-
+        <Header />
         <main className="mario-panel w-full max-w-[500px] p-8 bg-white flex flex-col shadow-2xl">
           {isPuzzleLevel ? (
             <div className="flex flex-col">
-              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE CHALLENGE!</div>
-              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Traduce esta oración:</p>
+              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE!</div>
+              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3">Translate to English:</p>
               <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl shadow-inner">
                  <p className="font-bold text-3xl text-blue-900 leading-tight">"{puzzleData.translation}"</p>
               </div>
-              
               <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start rounded-xl">
                 {state.selectedWords.map((w, i) => (
                   <span key={i} className="bg-white border-2 border-black px-4 py-2 text-xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
                 ))}
               </div>
-
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} onClick={async () => {
@@ -341,7 +351,7 @@ export default function App() {
                       const newPool = state.scrambleWords.filter((_, idx) => idx !== i);
                       setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: newPool }));
                       if (newSelected.length === correctWords.length) {
-                        playCorrectSound(ctx);
+                        playMarioCoin(ctx); // EFECTO MONEDA MARIO
                         setState(s => ({ ...s, score: s.score + 50 }));
                         playTTS(puzzleData.sentence); 
                         setTimeout(() => {
@@ -350,9 +360,8 @@ export default function App() {
                         }, 2500);
                       }
                     } else {
-                      play8BitNote(ctx, 110, 0.4, 'sawtooth');
+                      play8BitNote(ctx, 110, 0.4, 'sawtooth', 0.1);
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(puzzleData.sentence.split(' ')) }));
-                      playTTS("Try again!");
                     }
                   }} className="mario-button text-[16px] py-5 hover:bg-yellow-100 uppercase font-bold">{w}</button>
                 ))}
@@ -371,13 +380,12 @@ export default function App() {
                   <button key={i} disabled={state.showExplanation} onClick={async () => {
                     const ctx = await initAudio();
                     if (o === currentQ.correctAnswer) {
-                       playCorrectSound(ctx);
+                       playMarioCoin(ctx); // EFECTO MONEDA MARIO
                        const fullSentence = currentQ.text.replace('________', currentQ.correctAnswer);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
                        playTTS(fullSentence); 
                     } else {
-                       play8BitNote(ctx, 110, 0.2, 'sawtooth');
-                       playTTS("Try another!");
+                       play8BitNote(ctx, 110, 0.2, 'sawtooth', 0.1);
                     }
                   }} className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
                     {o}
@@ -406,14 +414,10 @@ export default function App() {
           <h2 className="mc-logo text-emerald-600 mb-8 text-3xl animate-bounce">WORLD CLEAR!</h2>
           <div className="flex flex-col items-center gap-4 mb-10">
             <span className="text-8xl drop-shadow-lg">{prize?.icon}</span>
-            <span className="text-xl font-black uppercase text-yellow-600">¡GANASTE EL {prize?.name}!</span>
+            <span className="text-xl font-black uppercase text-yellow-600">{prize?.name}</span>
           </div>
           <VoxelFelipe isDancing={true} />
-          <div className="bg-yellow-400 p-10 border-4 border-black my-12 shadow-[10px_10px_0px_#000]">
-             <p className="text-[16px] uppercase text-black mb-4 font-bold">TOTAL XP</p>
-             <p className="font-bold text-7xl text-black font-mono">{state.score}</p>
-          </div>
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-10 text-[24px] bg-orange-600 text-white font-black">MAP SELECT</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-10 text-[24px] bg-orange-600 text-white font-black mt-10">MAP SELECT</button>
         </div>
       </div>
     );
@@ -421,14 +425,15 @@ export default function App() {
 
   if (state.screen === 'passport') return (
     <div className="game-container p-10 bg-orange-100">
-      <h2 className="mc-logo text-2xl mb-12 text-black">PASSPORT</h2>
+      <Header />
+      <h2 className="mc-logo text-2xl mb-12 text-black text-center">TRAVELLER PASSPORT</h2>
       <div className="mario-panel w-full max-w-[500px] p-10 bg-white shadow-[15px_15px_0px_#8b4513]">
         <div className="flex items-center gap-10 mb-12 border-b-8 border-black pb-10">
           <VoxelFelipe isSpeaking={isFelipeSpeaking} />
           <div className="text-left">
-             <p className="text-[14px] text-gray-400 font-bold uppercase">HERO</p>
+             <p className="text-[14px] text-gray-400 font-bold uppercase">TRAVELLER</p>
              <p className="text-3xl font-bold uppercase">FELIPE & GUILLE</p>
-             <p className="text-2xl font-bold text-red-600 mt-2">XP: {state.score}</p>
+             <p className="text-2xl font-bold text-red-600 mt-2">TOTAL XP: {state.score}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-6">
@@ -443,7 +448,6 @@ export default function App() {
             );
           })}
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button w-full mt-16 bg-blue-600 text-white py-8 text-[18px] font-black">BACK</button>
       </div>
     </div>
   );
