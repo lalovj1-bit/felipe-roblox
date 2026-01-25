@@ -176,34 +176,54 @@ export default function App() {
     }
   };
 
-  const playSystemSound = async (type: 'success' | 'error') => {
+  const playSystemSound = async (type: 'success' | 'error' | 'missionComplete') => {
     const ctx = await initAudio();
     if (!ctx) return;
     
-    if (type === 'success') {
-      // Melodía Mario Bros Level Up (8-bit square waves)
-      const playNote = (freq: number, startTime: number, duration: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
-        gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
-        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + startTime + 0.01);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startTime + duration);
-        osc.start(ctx.currentTime + startTime);
-        osc.stop(ctx.currentTime + startTime + duration);
-      };
+    const playNote = (freq: number, startTime: number, duration: number, type: OscillatorType = 'square') => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type;
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+      gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+      gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + startTime + 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startTime + duration);
+      osc.start(ctx.currentTime + startTime);
+      osc.stop(ctx.currentTime + startTime + duration);
+    };
 
-      // Secuencia rápida tipo Mario
+    if (type === 'success') {
       const tempo = 0.12;
-      playNote(659.25, 0 * tempo, 0.1); // Mi
-      playNote(659.25, 1 * tempo, 0.1); // Mi
-      playNote(659.25, 2 * tempo, 0.1); // Mi
-      playNote(523.25, 3 * tempo, 0.1); // Do
-      playNote(659.25, 4 * tempo, 0.1); // Mi
-      playNote(783.99, 6 * tempo, 0.15); // Sol
-      playNote(392.00, 8 * tempo, 0.2); // Sol bajo
+      playNote(659.25, 0 * tempo, 0.1); 
+      playNote(659.25, 1 * tempo, 0.1); 
+      playNote(659.25, 2 * tempo, 0.1); 
+      playNote(523.25, 3 * tempo, 0.1); 
+      playNote(659.25, 4 * tempo, 0.1); 
+      playNote(783.99, 6 * tempo, 0.15); 
+      playNote(392.00, 8 * tempo, 0.2); 
+    } else if (type === 'missionComplete') {
+      // Melodía festiva tipo Tetris / Melodía Rusa (Korobeiniki)
+      const t = 0.15;
+      playNote(659.25, 0*t, 0.1); // Mi
+      playNote(493.88, 1*t, 0.1); // Si
+      playNote(523.25, 2*t, 0.1); // Do
+      playNote(587.33, 3*t, 0.1); // Re
+      playNote(523.25, 4*t, 0.1); // Do
+      playNote(493.88, 5*t, 0.1); // Si
+      playNote(440.00, 6*t, 0.1); // La
+      playNote(440.00, 7*t, 0.1); // La
+      playNote(523.25, 8*t, 0.1); // Do
+      playNote(659.25, 9*t, 0.1); // Mi
+      playNote(587.33, 10*t, 0.1); // Re
+      playNote(523.25, 11*t, 0.1); // Do
+      playNote(493.88, 12*t, 0.15); // Si
+      playNote(523.25, 14*t, 0.1); // Do
+      playNote(587.33, 15*t, 0.1); // Re
+      playNote(659.25, 16*t, 0.1); // Mi
+      playNote(523.25, 17*t, 0.1); // Do
+      playNote(440.00, 18*t, 0.1); // La
+      playNote(440.00, 19*t, 0.2); // La
     } else {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -228,7 +248,7 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
-    // El audio bloquea botones estrictamente ahora
+    // Habilitar audio obligatorio
     playTTS(q.sentence);
   };
 
@@ -255,11 +275,11 @@ export default function App() {
     const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
     if (state.selectedWords.join(' ') === currentQ.sentence) {
       playSystemSound('success');
-      playTTS("Perfect! You solved it.");
+      playTTS("Amazing job! Sentence completed.");
       setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
     } else {
       playSystemSound('error');
-      playTTS("Not correct. Try one more time.");
+      playTTS("That's not right. Try again.");
       prepareScramble(state.currentQuestionIndex);
     }
   };
@@ -296,12 +316,25 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (state.screen === 'playing' && state.activeMission < 5) {
-      const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
-      const q = currentMissionQs[state.currentQuestionIndex];
-      if (q) playTTS(q.text.replace('________', '...'));
+    if (state.screen === 'playing') {
+      if (state.activeMission < 5) {
+        const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
+        const q = currentMissionQs[state.currentQuestionIndex];
+        if (q) playTTS(q.text.replace('________', '...'));
+      } else {
+        // Para la misión 5, asegurar que el audio se dispare al cambiar de pregunta
+        const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
+        if (q) playTTS(q.sentence);
+      }
     }
   }, [state.currentQuestionIndex, state.activeMission, state.screen]);
+
+  // Disparar sonido de victoria festivo al entrar en pantalla de Game Over
+  useEffect(() => {
+    if (state.screen === 'game_over') {
+      playSystemSound('missionComplete');
+    }
+  }, [state.screen]);
 
   if (state.screen === 'intro') {
     return (
@@ -357,19 +390,19 @@ export default function App() {
             {isAudioLoading && (
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full"></div>
-                <span className="text-[10px] font-bold text-black uppercase">Felipe Speaking...</span>
+                <span className="text-[10px] font-bold text-black uppercase">Wait for Felipe...</span>
               </div>
             )}
             
             <div className="flex items-start gap-6 mb-10">
               <VoxelFelipe isActive={false} mood="thinking" accessory={state.equippedAccessory} />
               <div className="chat-bubble flex-1 shadow-lg">
-                <p className="text-xl font-bold text-sky-700 italic">"Listen and translate: {q.translation}"</p>
+                <p className="text-xl font-bold text-sky-700 italic">"Listen carefully and translate: {q.translation}"</p>
               </div>
             </div>
 
             <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
-              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe first...</p>}
+              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe speak...</p>}
               {state.selectedWords.map((w, i) => (
                 <button key={i} disabled={isAudioLoading} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
                   {w}
@@ -388,7 +421,7 @@ export default function App() {
 
             {state.showExplanation ? (
               <div className="bg-[#55aa55] p-6 border-4 border-black text-white text-center animate-in zoom-in">
-                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">SUCCESS! XP COLLECTED</h3>
+                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">MISSION STEP SUCCESS!</h3>
                 <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
                     const next = state.currentQuestionIndex + 1;
@@ -398,12 +431,12 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
                     generateAIPostcard(5, "Dinosaur World");
                   }
-                }} className="mc-button bg-[#ffffff] text-black w-full">NEXT LEVEL »</button>
+                }} className="mc-button bg-[#ffffff] text-black w-full">CONTINUE »</button>
               </div>
             ) : (
               <button disabled={state.scrambleWords.length > 0 || isAudioLoading} onClick={checkScramble} 
                 className="mc-button w-full py-6 text-lg bg-[#3498db] text-white">
-                VERIFY SENTENCE
+                FINISH SENTENCE
               </button>
             )}
           </main>
@@ -442,13 +475,13 @@ export default function App() {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
-                  playTTS("That's it! Well done.");
+                  playTTS("Yes! That's correct.");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
-                  playTTS("Not quite. Try another one.");
+                  playTTS("Oops! Try another word.");
                 }
-              }} disabled={state.showExplanation} className={`mc-button text-sm py-6 ${
+              }} disabled={state.showExplanation || isAudioLoading} className={`mc-button text-sm py-6 ${
                   state.userAnswer === opt 
                     ? (opt === currentQ.correctAnswer ? 'bg-[#55aa55] text-white' : 'bg-[#aa0000] text-white') 
                     : ''
@@ -519,7 +552,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#34495e]">
         <div className="mc-panel p-16 text-center max-w-lg w-full">
            <h1 className="mc-logo mb-12 text-2xl">FELIPE QUEST</h1>
-           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase">MISSION UNLOCKED!</h3>
+           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase animate-bounce">MISSION UNLOCKED!</h3>
            <div className="mb-10 min-h-[300px] flex items-center justify-center">
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
@@ -528,9 +561,9 @@ export default function App() {
                </div>
              ) : (
                <div className="flex flex-col items-center animate-in zoom-in">
-                 <div className="mb-10">
-                   {/* EL LOGO BAILANDO CON EL PERSONAJE */}
-                   <VoxelFelipe isActive={true} isDancing={true} size="w-56 h-56" accessory={state.equippedAccessory} mood="happy" />
+                 <div className="mb-12">
+                   {/* EL LOGO BAILANDO CON EL PERSONAJE Y MÚSICA TIPO TETRIS */}
+                   <VoxelFelipe isActive={true} isDancing={true} size="w-64 h-64" accessory={state.equippedAccessory} mood="happy" />
                  </div>
                  {state.postcards[state.activeMission] && <img src={state.postcards[state.activeMission]} className="w-full border-4 border-black shadow-2xl mb-6" />}
                  <p className="text-lg font-bold text-black italic">"{state.diaries[state.activeMission]}"</p>
@@ -546,3 +579,5 @@ export default function App() {
 
   return null;
 }
+
+
