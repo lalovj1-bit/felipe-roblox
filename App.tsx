@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES } from './constants';
-import { GameState } from './types';
+import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
+import { GameState, ChatMessage } from './types';
 
 const missions = [
   { id: 1, title: 'Dino Land', icon: '🦖' },
@@ -54,11 +54,14 @@ export default function App() {
     screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 100,
     isNight: false, feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {},
     isGeneratingPostcard: false, equippedAccessory: 'none', unlockedAccessories: ['none'],
-    scrambleWords: [], selectedWords: [], chatHistory: [], dailyChallenge: ''
+    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Want to talk in English? (¡Hola! Soy Felipe. ¿Quieres hablar en inglés?)" }], dailyChallenge: ''
   });
 
+  const [inputMessage, setInputMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const initAudio = () => {
     if (!audioContextRef.current) {
@@ -96,11 +99,40 @@ export default function App() {
     } catch { }
   };
 
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isTyping) return;
+    const userMsg: ChatMessage = { role: 'user', text: inputMessage };
+    setState(s => ({ ...s, chatHistory: [...s.chatHistory, userMsg] }));
+    setInputMessage('');
+    setIsTyping(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const chat = ai.chats.create({
+        model: 'gemini-3-flash-preview',
+        config: { systemInstruction: FELIPE_SYSTEM_PROMPT }
+      });
+      
+      const response = await chat.sendMessage({ message: inputMessage });
+      const felipeMsg: ChatMessage = { role: 'felipe', text: response.text || "I'm thinking... (Estoy pensando...)" };
+      setState(s => ({ ...s, chatHistory: [...s.chatHistory, felipeMsg] }));
+      playTTS(felipeMsg.text);
+    } catch (e) {
+      const errorMsg: ChatMessage = { role: 'felipe', text: "Oh no! My dino-brain is tired. Let's try later! (¡Oh no! Mi cerebro dino está cansado. ¡Probemos luego!)" };
+      setState(s => ({ ...s, chatHistory: [...s.chatHistory, errorMsg] }));
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [state.chatHistory]);
+
   const missionQs = useMemo(() => 
     QUESTIONS.filter(q => q.mission === state.activeMission), 
   [state.activeMission]);
 
-  // Lógica de Puzzle: Todos los niveles de la Misión 5, o los niveles 5 y 10 en las demás
   const isPuzzleLevel = state.activeMission === 5 || (state.currentQuestionIndex + 1) % 5 === 0;
 
   useEffect(() => {
@@ -108,10 +140,8 @@ export default function App() {
       if (isPuzzleLevel) {
         let puzzleIdx = 0;
         if (state.activeMission === 5) {
-          // Misión 5 usa los puzzles del 8 al 17 (10 puzzles)
           puzzleIdx = 8 + state.currentQuestionIndex;
         } else {
-          // Otras misiones usan puzzles de 2 en 2
           puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
         }
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
@@ -119,7 +149,6 @@ export default function App() {
       } else {
         let qIdx = state.currentQuestionIndex;
         if (qIdx > 4) qIdx -= 1;
-        
         const currentQ = missionQs[qIdx];
         if (currentQ) {
           setShuffledOptions(shuffle(currentQ.options));
@@ -132,15 +161,52 @@ export default function App() {
     <div className="game-container justify-center bg-[#5c94fc]" onClick={() => { initAudio(); playIntroTheme(audioContextRef.current!); }}>
       <div className="mario-panel p-10 max-w-[480px] w-full text-center">
         <h1 className="mc-logo text-2xl text-black mb-4">SUPER FELIPE Y GUILLE</h1>
-        <div className="bg-yellow-400 border-4 border-black inline-block px-8 py-3 mb-8">
+        <div className="bg-yellow-400 border-4 border-black inline-block px-8 py-3 mb-8 text-center">
           <h2 className="text-[16px] font-bold text-black uppercase">Adventure XL Edition</h2>
         </div>
         <div className="flex justify-center mb-8">
           <VoxelFelipe />
         </div>
-        <div className="space-y-6">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[18px] py-8 bg-green-500 text-white uppercase font-black">START GAME</button>
-          <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[14px] py-5 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
+        <div className="space-y-4">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'chat' }))} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">CHAT WITH FELIPE</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[12px] py-3 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (state.screen === 'chat') return (
+    <div className="game-container p-4 bg-sky-300">
+      <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/50 border-4 border-black">
+        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button text-[12px] bg-red-600 text-white p-2 px-6">BACK</button>
+        <span className="text-white font-bold text-[18px]">DINO CHAT 🦖</span>
+      </header>
+      
+      <div className="mario-panel w-full max-w-[500px] flex-1 bg-white mb-4 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {state.chatHistory.map((m, i) => (
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+              {m.role === 'felipe' && <div className="w-10 h-10 shrink-0 bg-green-200 border-2 border-black rounded-full flex items-center justify-center text-xl">🦖</div>}
+              <div className={`max-w-[80%] p-4 border-4 border-black font-bold text-[16px] shadow-[4px_4px_0px_rgba(0,0,0,0.2)] ${m.role === 'user' ? 'bg-blue-100' : 'bg-yellow-50'}`}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {isTyping && <div className="text-gray-400 animate-pulse font-bold text-[14px]">Felipe is thinking...</div>}
+          <div ref={chatEndRef} />
+        </div>
+        
+        <div className="p-4 border-t-8 border-black bg-gray-100 flex gap-4">
+          <input 
+            type="text" 
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+            placeholder="Talk to me! (¡Háblame!)"
+            className="flex-1 border-4 border-black p-4 font-bold text-[16px] outline-none focus:bg-yellow-50"
+          />
+          <button onClick={handleSendMessage} className="mario-button bg-green-500 text-white text-[20px] px-8">SEND</button>
         </div>
       </div>
     </div>
@@ -179,15 +245,8 @@ export default function App() {
   if (state.screen === 'playing') {
     let qIdxForNormal = state.currentQuestionIndex;
     if (qIdxForNormal > 4) qIdxForNormal -= 1;
-    
     const currentQ = missionQs[qIdxForNormal];
-    
-    let puzzleIdx = 0;
-    if (state.activeMission === 5) {
-      puzzleIdx = 8 + state.currentQuestionIndex;
-    } else {
-      puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
-    }
+    let puzzleIdx = state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
     const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
 
     return (
@@ -204,42 +263,33 @@ export default function App() {
           {isPuzzleLevel ? (
             <div className="flex flex-col">
               <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE CHALLENGE!</div>
-              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Follow the model:</p>
-              <div className="bg-blue-100 p-5 border-4 border-black mb-8 text-center">
-                 <p className="font-bold text-2xl text-blue-900 leading-tight">"{puzzleData.sentence}"</p>
-                 <p className="text-[12px] text-blue-600 mt-2 font-mono">({puzzleData.translation})</p>
+              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Traduce esta oración:</p>
+              <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl">
+                 <p className="font-bold text-3xl text-blue-900 leading-tight">"{puzzleData.translation}"</p>
               </div>
-              
               <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start">
                 {state.selectedWords.map((w, i) => (
                   <span key={i} className="bg-white border-2 border-black px-4 py-2 text-xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
                 ))}
               </div>
-
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} onClick={() => {
                     initAudio();
                     const nextWordIndex = state.selectedWords.length;
                     const correctWords = puzzleData.sentence.split(' ');
-                    
                     if (w === correctWords[nextWordIndex]) {
                       const newSelected = [...state.selectedWords, w];
                       const newPool = state.scrambleWords.filter((_, idx) => idx !== i);
                       setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: newPool }));
-                      
                       if (newSelected.length === correctWords.length) {
                         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        playTTS("Perfect!");
-                        
+                        playTTS(puzzleData.sentence); // Lee la oración final en inglés
                         setTimeout(() => {
-                           if (state.currentQuestionIndex === 9) {
-                             setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
-                           } else {
-                             setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
-                           }
-                        }, 1800);
+                           if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
+                           else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
+                        }, 2500);
                       }
                     } else {
                       if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.4, 'sawtooth');
@@ -258,25 +308,23 @@ export default function App() {
                   {state.showExplanation ? currentQ.text.replace('________', currentQ.correctAnswer) : currentQ.text}
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={() => {
                     if (o === currentQ.correctAnswer) {
                        if (audioContextRef.current) playCorrectSound(audioContextRef.current);
+                       const fullSentence = currentQ.text.replace('________', currentQ.correctAnswer);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
-                       playTTS(`Good! ${o}`);
+                       playTTS(fullSentence); // Lee la oración completa correcta
                     } else {
                        if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.2, 'sawtooth');
                        playTTS("Try another!");
                     }
-                  }} 
-                    className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
+                  }} className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
                     {o}
                   </button>
                 ))}
               </div>
-
               {state.showExplanation && (
                 <div className="mt-10 p-6 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[8px_8px_0px_#000]">
                   <p className="text-[14px] font-bold mb-6 uppercase italic">"{currentQ.translation}"</p>
