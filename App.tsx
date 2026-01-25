@@ -37,14 +37,19 @@ const playIntroTheme = (ctx: AudioContext) => {
 
 const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
 
-const VoxelFelipe = ({ isDancing }: { isDancing?: boolean }) => (
+const VoxelFelipe = ({ isDancing, isSpeaking }: { isDancing?: boolean, isSpeaking?: boolean }) => (
   <div className={`relative w-40 h-40 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
+    {isSpeaking && (
+      <div className="absolute -top-10 -right-10 bg-white border-4 border-black p-2 rounded-xl text-xs font-bold animate-pulse shadow-md z-10">
+        📢 SPEAKING...
+      </div>
+    )}
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
       <rect x="30" y="45" width="45" height="40" fill="#00a800" stroke="#000" strokeWidth="4" />
       <rect x="35" y="15" width="35" height="35" fill="#00ff00" stroke="#000" strokeWidth="4" />
       <rect x="42" y="30" width="8" height="10" fill="#000" />
       <rect x="58" y="30" width="8" height="10" fill="#000" />
-      <rect x="40" y="60" width="25" height="5" fill="#000" opacity="0.3" />
+      <rect x="40" y="60" width="25" height="5" fill="#000" opacity={isSpeaking ? "0.6" : "0.3"} className={isSpeaking ? "animate-pulse" : ""} />
     </svg>
   </div>
 );
@@ -59,6 +64,7 @@ export default function App() {
 
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isFelipeSpeaking, setIsFelipeSpeaking] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
   const audioContextRef = useRef<AudioContext | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -72,6 +78,7 @@ export default function App() {
 
   const playTTS = async (text: string) => {
     try {
+      setIsFelipeSpeaking(true);
       initAudio();
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
@@ -94,9 +101,14 @@ export default function App() {
         const source = audioContextRef.current.createBufferSource();
         source.buffer = buffer; 
         source.connect(audioContextRef.current.destination);
+        source.onended = () => setIsFelipeSpeaking(false);
         source.start();
+      } else {
+        setIsFelipeSpeaking(false);
       }
-    } catch { }
+    } catch { 
+      setIsFelipeSpeaking(false);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -165,7 +177,7 @@ export default function App() {
           <h2 className="text-[16px] font-bold text-black uppercase">Adventure XL Edition</h2>
         </div>
         <div className="flex justify-center mb-8">
-          <VoxelFelipe />
+          <VoxelFelipe isSpeaking={isFelipeSpeaking} />
         </div>
         <div className="space-y-4">
           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
@@ -184,16 +196,16 @@ export default function App() {
       </header>
       
       <div className="mario-panel w-full max-w-[500px] flex-1 bg-white mb-4 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 text-left">
           {state.chatHistory.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} items-end gap-2`}>
-              {m.role === 'felipe' && <div className="w-10 h-10 shrink-0 bg-green-200 border-2 border-black rounded-full flex items-center justify-center text-xl">🦖</div>}
+              {m.role === 'felipe' && <div className="w-10 h-10 shrink-0 bg-green-200 border-2 border-black rounded-full flex items-center justify-center text-xl shadow-sm">🦖</div>}
               <div className={`max-w-[80%] p-4 border-4 border-black font-bold text-[16px] shadow-[4px_4px_0px_rgba(0,0,0,0.2)] ${m.role === 'user' ? 'bg-blue-100' : 'bg-yellow-50'}`}>
                 {m.text}
               </div>
             </div>
           ))}
-          {isTyping && <div className="text-gray-400 animate-pulse font-bold text-[14px]">Felipe is thinking...</div>}
+          {isTyping && <div className="text-gray-400 animate-pulse font-bold text-[14px] ml-12">Felipe is thinking...</div>}
           <div ref={chatEndRef} />
         </div>
         
@@ -206,7 +218,7 @@ export default function App() {
             placeholder="Talk to me! (¡Háblame!)"
             className="flex-1 border-4 border-black p-4 font-bold text-[16px] outline-none focus:bg-yellow-50"
           />
-          <button onClick={handleSendMessage} className="mario-button bg-green-500 text-white text-[20px] px-8">SEND</button>
+          <button onClick={handleSendMessage} className="mario-button bg-green-500 text-white text-[16px] px-8">SEND</button>
         </div>
       </div>
     </div>
@@ -264,15 +276,16 @@ export default function App() {
             <div className="flex flex-col">
               <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE CHALLENGE!</div>
               <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Traduce esta oración:</p>
-              <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl">
+              <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl shadow-inner">
                  <p className="font-bold text-3xl text-blue-900 leading-tight">"{puzzleData.translation}"</p>
-                 {/* El modelo en inglés ya no aparece aquí */}
               </div>
-              <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start">
+              
+              <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start rounded-xl">
                 {state.selectedWords.map((w, i) => (
                   <span key={i} className="bg-white border-2 border-black px-4 py-2 text-xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
                 ))}
               </div>
+
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} onClick={() => {
@@ -286,7 +299,8 @@ export default function App() {
                       if (newSelected.length === correctWords.length) {
                         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        playTTS(puzzleData.sentence); // Refuerzo auditivo de la oración completa
+                        // Refuerzo auditivo: Felipe lee la oración completa en inglés al completar el puzzle
+                        playTTS(puzzleData.sentence); 
                         setTimeout(() => {
                            if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
                            else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
@@ -297,15 +311,15 @@ export default function App() {
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(puzzleData.sentence.split(' ')) }));
                       playTTS("Try again!");
                     }
-                  }} className="mario-button text-[16px] py-5 hover:bg-yellow-100">{w}</button>
+                  }} className="mario-button text-[16px] py-5 hover:bg-yellow-100 uppercase font-bold">{w}</button>
                 ))}
               </div>
             </div>
           ) : (
             <>
               <div className="flex flex-col items-center gap-8 mb-10">
-                <VoxelFelipe isDancing={state.showExplanation} />
-                <div className="bg-sky-50 border-4 border-black p-6 w-full text-black font-bold text-2xl leading-tight text-center rounded-2xl shadow-inner">
+                <VoxelFelipe isDancing={state.showExplanation} isSpeaking={isFelipeSpeaking} />
+                <div className="bg-sky-50 border-4 border-black p-6 w-full text-black font-bold text-2xl leading-tight text-center rounded-2xl shadow-inner min-h-[100px] flex items-center justify-center">
                   {state.showExplanation ? currentQ.text.replace('________', currentQ.correctAnswer) : currentQ.text}
                 </div>
               </div>
@@ -316,7 +330,8 @@ export default function App() {
                        if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                        const fullSentence = currentQ.text.replace('________', currentQ.correctAnswer);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
-                       playTTS(fullSentence); // Refuerzo auditivo de la oración completa correcta
+                       // Refuerzo auditivo: Felipe lee la oración completa en inglés al acertar
+                       playTTS(fullSentence); 
                     } else {
                        if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.2, 'sawtooth');
                        playTTS("Try another!");
@@ -366,8 +381,8 @@ export default function App() {
       <h2 className="mc-logo text-2xl mb-12 text-black">PASSPORT</h2>
       <div className="mario-panel w-full max-w-[500px] p-10 bg-white shadow-[15px_15px_0px_#8b4513]">
         <div className="flex items-center gap-10 mb-12 border-b-8 border-black pb-10">
-          <VoxelFelipe />
-          <div>
+          <VoxelFelipe isSpeaking={isFelipeSpeaking} />
+          <div className="text-left">
              <p className="text-[14px] text-gray-400 font-bold uppercase">HERO</p>
              <p className="text-3xl font-bold uppercase">FELIPE & GUILLE</p>
              <p className="text-2xl font-bold text-red-600 mt-2">XP: {state.score}</p>
@@ -378,7 +393,7 @@ export default function App() {
             const done = state.stamps.includes(m.id);
             const prize = PRIZES.find(p => p.id === m.id);
             return (
-              <div key={m.id} className={`p-6 border-4 border-black flex flex-col items-center transition-all ${done ? 'bg-yellow-200 scale-110' : 'bg-gray-100 opacity-20 grayscale'}`}>
+              <div key={m.id} className={`p-6 border-4 border-black flex flex-col items-center transition-all rounded-lg ${done ? 'bg-yellow-200 scale-110 shadow-lg' : 'bg-gray-100 opacity-20 grayscale'}`}>
                 <span className="text-4xl">{done ? prize?.icon : m.icon}</span>
                 <span className="text-[10px] font-black uppercase mt-4">W-{m.id}</span>
               </div>
