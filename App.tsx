@@ -41,8 +41,8 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
       )}
       {item === 'safari_hat' && (
         <g>
-          <rect x="25" y="10" width="60" height="10" fill="#a16207" stroke="#000" strokeWidth="2" />
-          <rect x="35" y="0" width="40" height="12" fill="#a16207" stroke="#000" strokeWidth="2" />
+          <rect x="25" y="5" width="60" height="10" fill="#a16207" stroke="#000" strokeWidth="2" />
+          <rect x="35" y="-5" width="40" height="12" fill="#a16207" stroke="#000" strokeWidth="2" />
         </g>
       )}
       {item === 'pilot_headset' && (
@@ -65,47 +65,47 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
 const VoxelFelipe = ({ isActive, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_rgba(0,0,0,0.6)]">
-      {/* CUERPO (Tronco) - Camiseta Blanca con logo azul */}
+      {/* PIERNAS (Pantalones Negros) */}
+      <rect x="32" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
+      <rect x="52" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
+      
+      {/* ZAPATOS (Azul Oscuro) */}
+      <rect x="32" y="94" width="16" height="6" fill="#0c4a6e" />
+      <rect x="52" y="94" width="16" height="6" fill="#0c4a6e" />
+
+      {/* CUERPO (Camiseta Blanca con Logo Azul) */}
       <rect x="30" y="45" width="40" height="35" fill="#FFFFFF" stroke="#000" strokeWidth="2" />
-      {/* Diseño de la camiseta (Cuadrados azules) */}
-      <rect x="40" y="55" width="20" height="18" fill="#0c4a6e" />
-      <rect x="45" y="60" width="10" height="8" fill="#FFFFFF" />
+      <rect x="40" y="52" width="20" height="18" fill="#0c4a6e" />
+      <rect x="44" y="56" width="12" height="10" fill="#FFFFFF" />
       
-      {/* BRAZOS (Skin color con borde de manga azul) */}
-      <rect x="22" y="45" width="8" height="25" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      <rect x="22" y="45" width="8" height="4" fill="#0c4a6e" />
+      {/* BRAZOS (Skin + Puños Azules) */}
+      <rect x="20" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
+      <rect x="20" y="45" width="10" height="6" fill="#0c4a6e" />
       
-      <rect x="70" y="45" width="8" height="25" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      <rect x="70" y="45" width="8" height="4" fill="#0c4a6e" />
+      <rect x="70" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
+      <rect x="70" y="45" width="10" height="6" fill="#0c4a6e" />
 
-      {/* PIERNAS (Pantalones negros) */}
-      <rect x="30" y="80" width="18" height="15" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
-      <rect x="52" y="80" width="18" height="15" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
-      
-      {/* ZAPATOS (Azules) */}
-      <rect x="30" y="92" width="18" height="6" fill="#0c4a6e" />
-      <rect x="52" y="92" width="18" height="6" fill="#0c4a6e" />
-
-      {/* CABEZA (Skin color) */}
+      {/* CABEZA (Skin Color) */}
       <rect x="35" y="15" width="30" height="30" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
       
-      {/* PELO (Negro blocky) */}
-      <rect x="33" y="10" width="34" height="15" fill="#111" />
-      <rect x="33" y="15" width="6" height="15" fill="#111" />
-      <rect x="61" y="15" width="6" height="15" fill="#111" />
-      {/* Detalles de flequillo pixelado */}
-      <rect x="35" y="20" width="6" height="4" fill="#111" />
-      <rect x="59" y="20" width="6" height="4" fill="#111" />
+      {/* PELO (Negro Blocky) */}
+      <rect x="33" y="10" width="34" height="12" fill="#111" />
+      <rect x="33" y="22" width="6" height="10" fill="#111" />
+      <rect x="61" y="22" width="6" height="10" fill="#111" />
+      <rect x="39" y="18" width="8" height="4" fill="#111" />
+      <rect x="53" y="18" width="8" height="4" fill="#111" />
 
-      {/* OJOS (Azul oscuro / Negro) */}
+      {/* OJOS (Minecraft Style) */}
       <rect x="40" y="30" width="4" height="6" fill="#0c4a6e" />
       <rect x="56" y="30" width="4" height="6" fill="#0c4a6e" />
+      <rect x="40" y="32" width="1" height="2" fill="#fff" />
+      <rect x="56" y="32" width="1" height="2" fill="#fff" />
       
-      {/* BOCA (Simple línea Minecraft) */}
+      {/* BOCA */}
       {mood === "happy" ? (
         <rect x="44" y="40" width="12" height="2" fill="#000" />
       ) : (
-        <rect x="46" y="40" width="8" height="2" fill="#000" opacity="0.5" />
+        <rect x="46" y="40" width="8" height="2" fill="#000" opacity="0.4" />
       )}
 
       <AccessoryLayer item={accessory} />
@@ -186,21 +186,47 @@ export default function App() {
   const playSystemSound = async (type: 'success' | 'error') => {
     const ctx = await initAudio();
     if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(type === 'success' ? 800 : 100, ctx.currentTime);
-    gain.gain.setValueAtTime(0.05, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-    osc.start(); osc.stop(ctx.currentTime + 0.1);
+    
+    if (type === 'success') {
+      // Fanfarria de felicitación LARGA y festiva (Melodía ascendente compleja)
+      const playNote = (freq: number, startTime: number, duration: number, type: OscillatorType = 'sine') => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+        gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
+        gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + startTime + 0.05);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startTime + duration);
+        osc.start(ctx.currentTime + startTime);
+        osc.stop(ctx.currentTime + startTime + duration);
+      };
+
+      // Melodía tipo "Win" épica
+      playNote(261.63, 0, 0.2);     // Do
+      playNote(329.63, 0.15, 0.2);  // Mi
+      playNote(392.00, 0.3, 0.2);   // Sol
+      playNote(523.25, 0.45, 0.3);  // Do (Octava)
+      playNote(523.25, 0.75, 0.15); // Do
+      playNote(587.33, 0.9, 0.15);  // Re
+      playNote(659.25, 1.05, 0.8, 'square'); // Mi final épico
+    } else {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(100, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(); osc.stop(ctx.currentTime + 0.3);
+    }
   };
 
   const missions = [
-    { id: 1, title: "Beach Party", icon: "🏖️" },
-    { id: 2, title: "Nature Camp", icon: "🏕️" },
-    { id: 3, title: "Fly High", icon: "✈️" },
-    { id: 4, title: "Magic Park", icon: "🎡" },
-    { id: 5, title: "City Finale", icon: "🏙️" }
+    { id: 1, title: "Space Adventure", icon: "🚀" },
+    { id: 2, title: "Deep Ocean", icon: "🌊" },
+    { id: 3, title: "Winter World", icon: "❄️" },
+    { id: 4, title: "Magic Forest", icon: "🍄" },
+    { id: 5, title: "Dino Land", icon: "🦖" }
   ];
 
   const prepareScramble = (index: number) => {
@@ -234,11 +260,11 @@ export default function App() {
     const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
     if (state.selectedWords.join(' ') === currentQ.sentence) {
       playSystemSound('success');
-      playTTS("Awesome! Mission complete.");
+      playTTS("Incredible! You are a master.");
       setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
     } else {
       playSystemSound('error');
-      playTTS("Oh no! Let's try one more time.");
+      playTTS("Not quite. Let's try again.");
       prepareScramble(state.currentQuestionIndex);
     }
   };
@@ -249,12 +275,12 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A blocky 3D voxel art postcard of a Minecraft character at ${missionTitle}. High resolution, bright colors.` }] },
+        contents: { parts: [{ text: `A voxel 3D Minecraft scene postcard of a kid at ${missionTitle}. High contrast, cinematic lighting, blocky style.` }] },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
       const textRes = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Simple 1-sentence diary in English for a kid about ${missionTitle}.`,
+        contents: `Write a short 1-sentence travel diary in English for a kid about visiting ${missionTitle}. Simple A1 English.`,
       });
       let imageUrl = "";
       const candidates = imgRes.candidates;
@@ -265,7 +291,7 @@ export default function App() {
       }
       setState(s => ({ 
         ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
-        diaries: { ...s.diaries, [missionId]: textRes.text || "Best trip ever!" },
+        diaries: { ...s.diaries, [missionId]: textRes.text || "Best day of my life!" },
         unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, (['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'] as Accessory[])[missionId-1]])),
         isGeneratingPostcard: false 
       }));
@@ -289,8 +315,8 @@ export default function App() {
           <h1 className="mc-logo mb-12">FELIPE<br/>QUEST</h1>
           <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-56 h-56" accessory={state.equippedAccessory} /></div>
           <div className="flex flex-col gap-6">
-            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">PLAY GAME</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY ALBUM</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">START THE QUEST</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY TRAVELS</button>
           </div>
         </div>
       </div>
@@ -317,7 +343,7 @@ export default function App() {
             </button>
           ))}
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button text-xs">BACK TO MENU</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button text-xs">GO BACK</button>
       </div>
     );
   }
@@ -336,19 +362,19 @@ export default function App() {
             {isAudioLoading && (
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full"></div>
-                <span className="text-[10px] font-bold text-black uppercase">Felipe Speaking...</span>
+                <span className="text-[10px] font-bold text-black uppercase">Voice Active...</span>
               </div>
             )}
             
             <div className="flex items-start gap-6 mb-10">
               <VoxelFelipe isActive={false} mood="thinking" accessory={state.equippedAccessory} />
               <div className="chat-bubble flex-1 shadow-lg">
-                <p className="text-xl font-bold text-sky-700 italic">"Translate: {q.translation}"</p>
+                <p className="text-xl font-bold text-sky-700 italic">"Can you translate this: {q.translation}?"</p>
               </div>
             </div>
 
             <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
-              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe first...</p>}
+              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Felipe is speaking... Listen!</p>}
               {state.selectedWords.map((w, i) => (
                 <button key={i} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
                   {w}
@@ -367,7 +393,7 @@ export default function App() {
 
             {state.showExplanation ? (
               <div className="bg-[#55aa55] p-6 border-4 border-black text-white text-center animate-in zoom-in">
-                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">PERFECT! +20 XP</h3>
+                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">SUCCESS! XP COLLECTED</h3>
                 <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
                     const next = state.currentQuestionIndex + 1;
@@ -375,14 +401,14 @@ export default function App() {
                     prepareScramble(next);
                   } else {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
-                    generateAIPostcard(5, "The Metropolis");
+                    generateAIPostcard(5, "Dinosaur Valley");
                   }
-                }} className="mc-button bg-[#ffffff] text-black w-full">CONTINUE QUEST</button>
+                }} className="mc-button bg-[#ffffff] text-black w-full">NEXT LEVEL »</button>
               </div>
             ) : (
               <button disabled={state.scrambleWords.length > 0 || isAudioLoading} onClick={checkScramble} 
                 className="mc-button w-full py-6 text-lg bg-[#3498db] text-white">
-                CHECK SENTENCE
+                VERIFY SENTENCE
               </button>
             )}
           </main>
@@ -421,11 +447,11 @@ export default function App() {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
-                  playTTS("Correct! You got it.");
+                  playTTS("Correct! Perfect job.");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
-                  playTTS("Oops, not that one.");
+                  playTTS("Oops! Choose another one.");
                 }
               }} disabled={state.showExplanation} className={`mc-button text-sm py-6 ${
                   state.userAnswer === opt 
@@ -447,7 +473,7 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, s.activeMission])) }));
                     generateAIPostcard(state.activeMission, missions.find(m => m.id === state.activeMission)?.title || "");
                   }
-                }} className="mc-button w-full bg-[#ffffff] text-black">NEXT MISSION »</button>
+                }} className="mc-button w-full bg-[#ffffff] text-black">CONTINUE JOURNEY »</button>
             </div>
           )}
         </main>
@@ -461,7 +487,7 @@ export default function App() {
         <h1 className="mc-logo mb-12 text-3xl">FELIPE QUEST</h1>
         <div className="mc-panel p-12 w-full max-w-4xl bg-white mb-10">
           <div className="mb-12">
-            <h3 className="font-bold text-sky-400 mb-6 uppercase tracking-widest text-lg">SKINS & ACCESSORIES</h3>
+            <h3 className="font-bold text-sky-400 mb-6 uppercase tracking-widest text-lg">MY SKINS</h3>
             <div className="flex gap-6 overflow-x-auto pb-4">
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
@@ -487,7 +513,7 @@ export default function App() {
               </div>
             ))}
           </div>
-          <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full py-6 text-xl">BACK TO HOME</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full py-6 text-xl">RETURN HOME</button>
         </div>
       </div>
     );
@@ -503,7 +529,7 @@ export default function App() {
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
                  <div className="w-16 h-16 border-8 border-black border-t-transparent animate-spin rounded-full mb-6"></div>
-                 <p className="font-bold text-black tracking-widest text-xs">CRAFTING POSTCARD...</p>
+                 <p className="font-bold text-black tracking-widest text-xs">COLLECTING STAMP...</p>
                </div>
              ) : (
                <div className="animate-in zoom-in">
@@ -512,8 +538,8 @@ export default function App() {
                </div>
              )}
            </div>
-           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full py-6 text-xl mb-6">VIEW ALBUM</button>
-           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="text-black font-bold uppercase text-xs tracking-widest">CONTINUE EXPLORING</button>
+           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full py-6 text-xl mb-6">ALBUM & DIARY</button>
+           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="text-black font-bold uppercase text-xs tracking-widest">CONTINUE ADVENTURE</button>
         </div>
       </div>
     );
