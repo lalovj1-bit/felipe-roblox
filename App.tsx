@@ -30,9 +30,9 @@ const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: O
 
 const playCorrectSound = (ctx: AudioContext) => {
   // Fanfarria ascendente larga estilo Mario
-  const notes = [392, 523, 659, 783, 1046, 1318];
+  const notes = [392, 523, 659, 783, 1046, 1318, 1568];
   notes.forEach((f, i) => {
-    setTimeout(() => play8BitNote(ctx, f, 0.4, 'square', 0.1), i * 120);
+    setTimeout(() => play8BitNote(ctx, f, 0.5, 'square', 0.12), i * 110);
   });
 };
 
@@ -43,13 +43,13 @@ const playTetrisTheme = (ctx: AudioContext) => {
   ];
   let time = 0;
   melody.forEach((f) => {
-    setTimeout(() => play8BitNote(ctx, f, 0.25, 'square', 0.08), time);
+    setTimeout(() => play8BitNote(ctx, f, 0.28, 'square', 0.1), time);
     time += 250;
   });
 };
 
 const playErrorSound = (ctx: AudioContext) => {
-  play8BitNote(ctx, 110, 0.5, 'sawtooth', 0.12);
+  play8BitNote(ctx, 110, 0.6, 'sawtooth', 0.15);
 };
 
 const playIntroTheme = (ctx: AudioContext) => {
@@ -61,13 +61,13 @@ const playIntroTheme = (ctx: AudioContext) => {
 
 // --- COMPONENTES VISUALES ---
 const ParticleEffect = () => {
-  const particles = Array.from({ length: 20 }).map((_, i) => {
-    const angle = (i / 20) * Math.PI * 2;
-    const x = Math.cos(angle) * 180;
-    const y = Math.sin(angle) * 180;
+  const particles = Array.from({ length: 25 }).map((_, i) => {
+    const angle = (i / 25) * Math.PI * 2;
+    const x = Math.cos(angle) * 200;
+    const y = Math.sin(angle) * 200;
     return <div key={i} className="xp-orb" style={{ '--tw-translate-x': `${x}px`, '--tw-translate-y': `${y}px` } as any} />;
   });
-  return <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{particles}</div>;
+  return <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">{particles}</div>;
 };
 
 const VoxelFelipe = ({ isActive, isDancing, isNight, size = "w-32 h-32", mood = "normal" }: { isActive: boolean, isDancing?: boolean, isNight: boolean, size?: string, mood?: string }) => (
@@ -90,7 +90,7 @@ export default function App() {
     screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 80, 
     isNight: new Date().getHours() > 19 || new Date().getHours() < 7,
     feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {}, isGeneratingPostcard: false,
-    equippedAccessory: 'none', unlockedAccessories: ['none'], scrambleWords: [], selectedWords: [], chatHistory: [], dailyChallenge: 'Checking the map...'
+    equippedAccessory: 'none', unlockedAccessories: ['none'], scrambleWords: [], selectedWords: [], chatHistory: [], dailyChallenge: 'Ready for action!'
   });
 
   const [isAudioLoading, setIsAudioLoading] = useState(false);
@@ -141,11 +141,11 @@ export default function App() {
     if (opt === currentQ.correctAnswer) {
       if (audioContextRef.current) playCorrectSound(audioContextRef.current);
       setState(s => ({ ...s, score: s.score + 10, attempts: 0, showExplanation: true, userAnswer: opt }));
-      playTTS(`Great! The word is ${opt}!`);
+      playTTS(`Perfect! The answer is ${opt}!`);
     } else {
       if (audioContextRef.current) playErrorSound(audioContextRef.current);
       setState(s => ({ ...s, attempts: s.attempts + 1 }));
-      playTTS("Not quite, try another one!");
+      playTTS("Try again, you can do it!");
     }
   };
 
@@ -167,13 +167,13 @@ export default function App() {
       const correct = SCRAMBLE_QUESTIONS[state.currentQuestionIndex].sentence;
       if (final.toLowerCase() === correct.toLowerCase()) {
         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
-        setState(s => ({ ...s, score: s.score + 20, showExplanation: true, attempts: 0 }));
-        playTTS("Amazing! You built the sentence perfectly!");
+        setState(s => ({ ...s, score: s.score + 25, showExplanation: true, attempts: 0 }));
+        playTTS("You are a sentence master!");
       } else {
         if (audioContextRef.current) playErrorSound(audioContextRef.current);
         const reset = correct.split(' ').sort(() => Math.random() - 0.5);
         setState(s => ({ ...s, attempts: s.attempts + 1, selectedWords: [], scrambleWords: reset }));
-        playTTS("Oops! Try building it again.");
+        playTTS("Check the order and try again!");
       }
     }
   };
@@ -192,21 +192,21 @@ export default function App() {
   }, [state.screen]);
 
   if (state.screen === 'intro') return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-cyan-500" onClick={initAudio}>
-      <div className="mc-panel p-12 max-w-lg w-full text-center shadow-[12px_12px_0px_#000] bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-blue-600" onClick={initAudio}>
+      <div className="mc-panel p-12 max-w-lg w-full text-center shadow-[15px_15px_0px_rgba(0,0,0,0.5)] bg-white">
         <h1 className="mc-logo mb-10 text-4xl text-black animate-pulse">FELIPE QUEST</h1>
         <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-64 h-64 mx-auto mb-12" />
-        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6 bg-green-500 text-white">PLAY ADVENTURE</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6 bg-green-500 text-white hover:bg-green-400">START JOURNEY</button>
       </div>
     </div>
   );
 
   if (state.screen === 'mission_select') return (
-    <div className="min-h-screen p-10 flex flex-col items-center bg-cyan-200">
-      <h2 className="mc-logo mb-12 text-black text-3xl">THE WORLDS</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-5xl">
+    <div className="min-h-screen p-10 flex flex-col items-center bg-sky-200">
+      <h2 className="mc-logo mb-12 text-black text-3xl">ADVENTURE MAP</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-6xl">
         {missions.map(m => {
-          const isDone = state.stamps.includes(m.id);
+          const isCompleted = state.stamps.includes(m.id);
           return (
             <button key={m.id} onClick={() => {
               if(m.id === 5) {
@@ -215,25 +215,25 @@ export default function App() {
               } else {
                 setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false, attempts: 0 }));
               }
-              playTTS(`Entering ${m.title}`);
-            }} className={`mc-panel p-10 relative hover:translate-y-[-8px] transition-all flex flex-col items-center gap-6 group ${isDone ? 'bg-green-50 border-green-600' : 'bg-white'}`}>
-              {isDone && (
-                <div className="absolute top-4 right-4 text-3xl animate-bounce">✅</div>
+              playTTS(`Mission ${m.id}: ${m.title}`);
+            }} className={`mc-panel p-10 relative hover:translate-y-[-10px] transition-all flex flex-col items-center gap-6 group ${isCompleted ? 'bg-green-50 border-green-600' : 'bg-white'}`}>
+              {isCompleted && (
+                <div className="absolute top-4 right-4 text-4xl animate-bounce">✅</div>
               )}
               <span className="text-8xl group-hover:scale-110 transition-transform">{m.icon}</span>
               <div className="text-center">
-                <span className="font-bold text-xl text-black uppercase tracking-wider block">{m.title}</span>
-                {isDone ? (
-                  <span className="text-sm font-bold text-green-600 uppercase mt-2 block">{m.medal} {m.reward}</span>
+                <span className="font-bold text-2xl text-black uppercase tracking-widest block">{m.title}</span>
+                {isCompleted ? (
+                  <span className="text-sm font-black text-green-700 uppercase mt-2 block px-2 bg-green-200 rounded">{m.medal} {m.reward}</span>
                 ) : (
-                  <span className="text-[10px] text-gray-500 uppercase mt-2 block">Reward: {m.reward}</span>
+                  <span className="text-xs text-gray-400 uppercase mt-2 block">Reward: {m.reward}</span>
                 )}
               </div>
             </button>
           );
         })}
       </div>
-      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mt-16 mc-button bg-gray-400">EXIT</button>
+      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mt-16 mc-button bg-gray-500 text-white">EXIT GAME</button>
     </div>
   );
 
@@ -241,34 +241,39 @@ export default function App() {
     if (state.activeMission === 5) {
       const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
       return (
-        <div className="min-h-screen p-6 flex flex-col items-center bg-indigo-600">
-           <header className="w-full max-w-3xl flex justify-between bg-black/30 p-4 border-4 border-black mb-10">
-             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-500 text-white">QUIT</button>
-             <div className="text-white font-bold text-2xl px-4">XP: {state.score}</div>
+        <div className="min-h-screen p-6 flex flex-col items-center bg-indigo-700">
+           <header className="w-full max-w-4xl flex justify-between bg-black/40 p-5 border-4 border-black mb-10 shadow-lg">
+             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-600 text-white">ABANDON</button>
+             <div className="text-white font-bold text-3xl px-6 flex items-center gap-3">
+               <span className="text-yellow-400">XP:</span> {state.score}
+             </div>
            </header>
-           <main className="mc-panel w-full max-w-3xl p-10 bg-white shadow-[10px_10px_0px_#000]">
-              <p className="text-center text-blue-600 font-bold mb-2 uppercase tracking-tighter">Mission 5: Master Scramble</p>
-              <div className="bg-yellow-100 p-8 border-4 border-black text-center text-3xl mb-12 shadow-inner font-bold italic">
+           <main className="mc-panel w-full max-w-3xl p-12 bg-white shadow-[12px_12px_0px_#000]">
+              <div className="flex justify-between items-center mb-6">
+                <p className="text-indigo-600 font-black uppercase tracking-tighter">Level {state.currentQuestionIndex + 1}/10</p>
+                <p className="font-bold text-gray-500">🏆 LEGENDARY QUEST</p>
+              </div>
+              <div className="bg-yellow-100 p-10 border-4 border-black text-center text-4xl mb-12 shadow-inner font-bold italic leading-tight">
                 "{q.translation}"
               </div>
-              <div className="min-h-[100px] border-b-4 border-dashed border-gray-300 flex flex-wrap gap-4 p-6 mb-12 justify-center bg-gray-50/50">
+              <div className="min-h-[120px] border-4 border-dashed border-indigo-200 flex flex-wrap gap-5 p-8 mb-12 justify-center bg-indigo-50/30 rounded-lg">
                 {state.selectedWords.map((w, i) => (
-                  <span key={i} className="bg-blue-600 text-white p-4 border-4 border-black font-bold text-2xl animate-in zoom-in">{w}</span>
+                  <span key={i} className="bg-indigo-600 text-white px-5 py-3 border-4 border-black font-bold text-3xl animate-in zoom-in">{w}</span>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-4 justify-center">
+              <div className="flex flex-wrap gap-5 justify-center">
                 {state.scrambleWords.map((w, i) => (
-                  <button key={i} onClick={() => handleWordTap(w, i)} className="mc-button bg-white text-black text-2xl hover:bg-yellow-200 py-4 px-6">{w}</button>
+                  <button key={i} onClick={() => handleWordTap(w, i)} className="mc-button bg-white text-black text-2xl hover:bg-yellow-300 py-5 px-8 shadow-md">{w}</button>
                 ))}
               </div>
               {state.attempts >= 3 && !state.showExplanation && (
-                <div className="mt-12 p-6 bg-orange-100 border-4 border-orange-500 text-black text-center animate-bounce">
-                  <p className="text-xl font-bold">FELIPE HELP: The first word is "{q.sentence.split(' ')[0]}"</p>
+                <div className="mt-12 p-8 bg-orange-100 border-4 border-orange-500 text-black text-center animate-bounce">
+                  <p className="text-2xl font-black">FELIPE HELP: The first word is "{q.sentence.split(' ')[0]}"</p>
                 </div>
               )}
               {state.showExplanation && (
-                <div className="mt-12 p-10 bg-green-100 border-4 border-black text-center animate-in slide-in-from-bottom">
-                  <p className="text-3xl font-bold text-green-700 mb-6">MAGNIFICENT! "{q.sentence}"</p>
+                <div className="mt-12 p-12 bg-green-200 border-4 border-black text-center animate-in slide-in-from-bottom">
+                  <p className="text-4xl font-black text-green-800 mb-8 tracking-tight">" {q.sentence} "</p>
                   <button onClick={() => {
                     if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
                       const next = state.currentQuestionIndex + 1;
@@ -277,7 +282,7 @@ export default function App() {
                     } else {
                       setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, 5])] }));
                     }
-                  }} className="mc-button w-full bg-blue-500 text-white text-xl py-5">NEXT CHALLENGE »</button>
+                  }} className="mc-button w-full bg-indigo-600 text-white text-3xl py-8 hover:bg-indigo-500">NEXT CHALLENGE »</button>
                 </div>
               )}
            </main>
@@ -287,53 +292,54 @@ export default function App() {
 
     const missionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
     const currentQ = missionQs[state.currentQuestionIndex];
-    // LOGICA DE RELLENAR ESPACIO CON ESTILO
+    // LÓGICA DE RELLENO DINÁMICO
     const displaySentence = state.showExplanation 
-      ? currentQ.text.replace('________', `<span class="text-green-600 underline font-black bg-green-100 px-2 animate-pulse">${currentQ.correctAnswer}</span>`)
+      ? currentQ.text.replace('________', `<span class="text-green-700 underline font-black bg-green-200 px-3 py-1 rounded-sm animate-pulse border-2 border-green-800">${currentQ.correctAnswer}</span>`)
       : currentQ.text;
 
     return (
-      <div className="min-h-screen flex flex-col items-center p-6 bg-emerald-500">
-        <header className="w-full max-w-4xl flex justify-between p-4 mb-10 bg-black/20 border-4 border-black">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-600 text-white">LEAVE WORLD</button>
-          <div className="text-white text-2xl font-bold flex items-center gap-4">
-             <span className="text-sm opacity-50 uppercase tracking-widest">XP points</span> {state.score}
+      <div className="min-h-screen flex flex-col items-center p-6 bg-emerald-600">
+        <header className="w-full max-w-5xl flex justify-between p-5 mb-10 bg-black/30 border-4 border-black shadow-lg">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-600 text-white">EXIT WORLD</button>
+          <div className="text-white text-3xl font-bold flex items-center gap-6">
+             <span className="text-xs opacity-60 uppercase tracking-widest font-black">Level {state.currentQuestionIndex + 1}/10</span>
+             <span className="text-yellow-400">XP</span> {state.score}
           </div>
         </header>
 
-        <main className="mc-panel w-full max-w-3xl p-12 bg-white relative shadow-[15px_15px_0px_rgba(0,0,0,0.3)]">
-          <div className="flex flex-col md:flex-row gap-10 items-center mb-12">
-            <VoxelFelipe isActive={state.showExplanation} isDancing={state.showExplanation} mood={state.attempts >= 3 ? 'sad' : 'normal'} isNight={state.isNight} size="w-56 h-56" />
-            <div className="bg-blue-50 border-4 border-black p-8 flex-1 text-black font-bold text-3xl leading-snug shadow-inner text-center md:text-left">
+        <main className="mc-panel w-full max-w-4xl p-14 bg-white relative shadow-[20px_20px_0px_rgba(0,0,0,0.4)]">
+          <div className="flex flex-col md:flex-row gap-12 items-center mb-14">
+            <VoxelFelipe isActive={state.showExplanation} isDancing={state.showExplanation} mood={state.attempts >= 3 ? 'sad' : 'normal'} isNight={state.isNight} size="w-64 h-64" />
+            <div className="bg-blue-50 border-4 border-black p-10 flex-1 text-black font-black text-4xl leading-tight shadow-inner text-center md:text-left rounded-xl">
               <div dangerouslySetInnerHTML={{ __html: displaySentence }} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {currentQ.options.map((o, i) => (
               <button key={i} disabled={state.showExplanation} onClick={() => checkAnswer(o, currentQ)} 
-                className={`mc-button text-2xl py-8 transition-colors ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-900' : 'bg-gray-100 hover:bg-yellow-100'}`}>
+                className={`mc-button text-3xl py-10 transition-all transform hover:scale-105 active:scale-95 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-500 border-green-900 text-white' : 'bg-gray-100 hover:bg-yellow-200'}`}>
                 {o}
               </button>
             ))}
           </div>
 
           {state.attempts >= 3 && !state.showExplanation && (
-            <div className="mt-10 p-6 bg-orange-100 border-4 border-orange-400 text-center animate-pulse">
-              <p className="font-bold text-orange-800 text-xl tracking-tight">FELIPE HINT: {currentQ.hint}</p>
+            <div className="mt-12 p-8 bg-orange-100 border-4 border-orange-500 text-center animate-pulse rounded-lg">
+              <p className="font-black text-orange-900 text-2xl tracking-tighter uppercase">Felipe's Hint: {currentQ.hint}</p>
             </div>
           )}
 
           {state.showExplanation && (
-            <div className="mt-12 p-10 bg-yellow-200 border-4 border-black text-center shadow-[8px_8px_0px_#000] animate-in slide-in-from-bottom">
-              <p className="text-3xl font-bold mb-6 italic">"{currentQ.translation}"</p>
+            <div className="mt-14 p-12 bg-yellow-300 border-4 border-black text-center shadow-[10px_10px_0px_#000] animate-in slide-in-from-bottom rounded-lg">
+              <p className="text-4xl font-black mb-8 italic text-black">" {currentQ.translation} "</p>
               <button onClick={() => {
                 if (state.currentQuestionIndex + 1 < missionQs.length) {
                   setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false, attempts: 0 }));
                 } else {
                   setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, state.activeMission])] }));
                 }
-              }} className="mc-button w-full bg-blue-600 text-white text-2xl py-6 hover:bg-blue-500">GO TO NEXT »</button>
+              }} className="mc-button w-full bg-emerald-700 text-white text-3xl py-8 hover:bg-emerald-600">GO TO NEXT »</button>
             </div>
           )}
         </main>
@@ -342,20 +348,28 @@ export default function App() {
   }
 
   if (state.screen === 'game_over') {
-    const currentMissionData = missions.find(m => m.id === state.activeMission);
+    const currentMissionData = missions.find(m => m.id === (state.activeMission || 1));
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-black">
-        <div className="mc-panel p-16 text-center max-w-2xl w-full bg-white shadow-[25px_25px_0px_#222] border-8 border-black">
-          <h2 className="mc-logo text-blue-600 mb-4 text-5xl animate-bounce">WORLD CLEAR!</h2>
-          <p className="text-2xl font-bold text-orange-600 mb-8 uppercase tracking-widest animate-pulse">
-            New Rank: {currentMissionData?.medal} {currentMissionData?.reward}
-          </p>
-          <div className="mb-12 relative">
-             <div className="absolute inset-0 bg-yellow-400/20 blur-3xl rounded-full"></div>
-             <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-72 h-72 mx-auto" />
+      <div className="min-h-screen flex items-center justify-center p-6 bg-black overflow-hidden relative">
+        <div className="mc-panel p-20 text-center max-w-3xl w-full bg-white shadow-[30px_30px_0px_#333] border-[10px] border-black relative z-10">
+          <h2 className="mc-logo text-emerald-600 mb-6 text-6xl animate-bounce">WORLD CLEAR!</h2>
+          <div className="inline-block px-10 py-4 bg-yellow-400 border-4 border-black transform -rotate-2 mb-10 shadow-lg">
+             <p className="text-3xl font-black text-black uppercase">
+               Rank: {currentMissionData?.medal} {currentMissionData?.reward}
+             </p>
           </div>
-          <p className="font-bold text-4xl mb-12 text-black font-mono tracking-widest">TOTAL XP: {state.score}</p>
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full py-8 text-3xl bg-orange-500 text-white hover:scale-105 transition-transform">BACK TO MAP</button>
+          
+          <div className="mb-14 relative group">
+             <div className="absolute inset-0 bg-yellow-400/30 blur-[80px] rounded-full group-hover:bg-emerald-400/40 transition-colors duration-1000"></div>
+             <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-80 h-80 mx-auto" />
+          </div>
+
+          <div className="bg-gray-100 p-8 border-4 border-black mb-14 rounded-xl">
+             <p className="text-sm uppercase text-gray-500 mb-2 font-black tracking-[0.3em]">Total Experience Points</p>
+             <p className="font-black text-6xl text-black font-mono tracking-widest">{state.score}</p>
+          </div>
+
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full py-10 text-4xl bg-orange-600 text-white hover:bg-orange-500 hover:scale-110 transition-transform shadow-xl">BACK TO MAP</button>
         </div>
       </div>
     );
@@ -363,4 +377,3 @@ export default function App() {
 
   return null;
 }
-
