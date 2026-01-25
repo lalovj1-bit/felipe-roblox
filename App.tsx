@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
 import { GameState, ChatMessage } from './types';
 
@@ -21,7 +21,8 @@ async function decodeAudioData(
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
+  // Aseguramos que usamos el buffer correcto con offset por seguridad
+  const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
@@ -58,7 +59,7 @@ const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: O
   osc.stop(ctx.currentTime + duration);
 };
 
-// Efecto Moneda de Mario (Ajustado)
+// Efecto Moneda de Mario
 const playMarioCoin = (ctx: AudioContext) => {
   play8BitNote(ctx, 987.77, 0.1, 'square', 0.1); // B5
   setTimeout(() => play8BitNote(ctx, 1318.51, 0.4, 'square', 0.1), 100); // E6
@@ -72,11 +73,16 @@ const playIntroTheme = (ctx: AudioContext) => {
 
 const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
 
-const VoxelFelipe = ({ isDancing, isSpeaking }: { isDancing?: boolean, isSpeaking?: boolean }) => (
+const VoxelFelipe = ({ isDancing, isSpeaking, isLoadingAudio }: { isDancing?: boolean, isSpeaking?: boolean, isLoadingAudio?: boolean }) => (
   <div className={`relative w-40 h-40 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
     {isSpeaking && (
       <div className="absolute -top-10 -right-10 bg-white border-4 border-black p-2 rounded-xl text-xs font-bold animate-pulse shadow-md z-10 text-black">
         📢 SPEAKING...
+      </div>
+    )}
+    {isLoadingAudio && (
+      <div className="absolute -top-10 -left-10 bg-yellow-400 border-4 border-black p-2 rounded-xl text-xs font-bold animate-bounce shadow-md z-10 text-black">
+        ⌛ LOADING SOUND...
       </div>
     )}
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
@@ -94,12 +100,13 @@ export default function App() {
     screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 100,
     isNight: false, feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {},
     isGeneratingPostcard: false, equippedAccessory: 'none', unlockedAccessories: ['none'],
-    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Ready for an adventure? (¡Hola! Soy Felipe. ¿Listo para la aventura?)" }], dailyChallenge: ''
+    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Ready for an adventure?" }], dailyChallenge: ''
   });
 
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isFelipeSpeaking, setIsFelipeSpeaking] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState<string[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   
@@ -117,23 +124,16 @@ export default function App() {
     return audioContextRef.current;
   };
 
-  // --- LÓGICA DE MÚSICA DE FONDO (BGM) CÍCLICA ---
   const startBGM = async () => {
     const ctx = await initAudio();
     if (bgmIntervalRef.current) return;
 
-    // Melodía aventurera cíclica
-    const melody = [
-      261, 329, 392, 523, 392, 329, // Do Mi Sol Do Sol Mi
-      261, 329, 392, 523, 392, 329,
-      349, 440, 523, 698, 523, 440, // Fa La Do Fa Do La
-      293, 392, 493, 587, 493, 392  // Re Sol Si Re Si Sol
-    ];
+    const melody = [261, 329, 392, 523, 392, 329, 261, 329, 392, 523, 392, 329, 349, 440, 523, 698, 523, 440, 293, 392, 493, 587, 493, 392];
     let noteIdx = 0;
 
     bgmIntervalRef.current = window.setInterval(() => {
-      if (!isMuted && state.screen !== 'intro') {
-        play8BitNote(ctx, melody[noteIdx], 0.25, 'triangle', 0.02);
+      if (!isMuted && state.screen !== 'intro' && audioContextRef.current) {
+        play8BitNote(audioContextRef.current, melody[noteIdx], 0.25, 'triangle', 0.02);
       }
       noteIdx = (noteIdx + 1) % melody.length;
     }, 250);
@@ -146,16 +146,17 @@ export default function App() {
   }, []);
 
   const playTTS = async (text: string) => {
+    if (!text) return;
     try {
       const ctx = await initAudio();
-      setIsFelipeSpeaking(true);
+      setIsLoadingAudio(true);
       
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text }] }],
         config: { 
-          responseModalities: ['AUDIO'], 
+          responseModalities: [Modality.AUDIO], 
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
         },
       });
@@ -166,12 +167,16 @@ export default function App() {
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer; 
         source.connect(ctx.destination);
+        setIsLoadingAudio(false);
+        setIsFelipeSpeaking(true);
         source.onended = () => setIsFelipeSpeaking(false);
         source.start();
       } else {
-        setIsFelipeSpeaking(false);
+        setIsLoadingAudio(false);
       }
     } catch (error) { 
+      console.error("TTS Error:", error);
+      setIsLoadingAudio(false);
       setIsFelipeSpeaking(false);
     }
   };
@@ -208,25 +213,26 @@ export default function App() {
 
   const missionQs = useMemo(() => 
     QUESTIONS.filter(q => q.mission === state.activeMission), 
-  [state.activeMission, QUESTIONS]);
+  [state.activeMission]);
 
   const isPuzzleLevel = state.activeMission === 5 || (state.currentQuestionIndex + 1) % 5 === 0;
   const isAudioLevel = state.activeMission === 6;
 
   useEffect(() => {
     if (state.screen === 'playing') {
+      const currentQ = missionQs[state.currentQuestionIndex];
       if (isPuzzleLevel && state.activeMission !== 6) {
         let puzzleIdx = state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
         setState(s => ({ ...s, scrambleWords: shuffle(puzzleData.sentence.split(' ')), selectedWords: [] }));
-      } else {
-        const currentQ = missionQs[state.currentQuestionIndex];
-        if (currentQ) {
-          setShuffledOptions(shuffle(currentQ.options));
-          if (isAudioLevel) {
-            // Auto-play the word when the question loads
+      } else if (currentQ) {
+        setShuffledOptions(shuffle(currentQ.options));
+        if (isAudioLevel) {
+          // Un pequeño delay para asegurar que el componente cargó y el contexto de audio esté listo
+          const timer = setTimeout(() => {
             playTTS(currentQ.text);
-          }
+          }, 500);
+          return () => clearTimeout(timer);
         }
       }
     }
@@ -254,7 +260,7 @@ export default function App() {
           <h2 className="text-[16px] font-bold text-black uppercase">Adventure Edition</h2>
         </div>
         <div className="flex justify-center mb-8">
-          <VoxelFelipe isSpeaking={isFelipeSpeaking} />
+          <VoxelFelipe isSpeaking={isFelipeSpeaking} isLoadingAudio={isLoadingAudio} />
         </div>
         <div className="space-y-4">
           <button onClick={async () => { 
@@ -333,11 +339,15 @@ export default function App() {
         <main className="mario-panel w-full max-w-[500px] p-8 bg-white flex flex-col shadow-2xl min-h-[500px]">
           {isAudioLevel ? (
             <div className="flex flex-col items-center flex-1">
-              <div className="bg-purple-600 text-white text-[16px] p-4 text-center font-bold mb-6 border-4 border-black shadow-[4px_4px_0px_#000] w-full">WORD HUNTER!</div>
+              <div className="bg-purple-600 text-white text-[16px] p-4 text-center font-bold mb-6 border-4 border-black shadow-[4px_4px_0px_#000] w-full uppercase">WORD HUNTER!</div>
               
               <div className="flex flex-col items-center gap-4 mb-8">
-                 <VoxelFelipe isSpeaking={isFelipeSpeaking} isDancing={state.showExplanation} />
-                 <button onClick={() => playTTS(currentQ.text)} className="mario-button bg-yellow-400 p-4 rounded-full hover:scale-110">
+                 <VoxelFelipe isSpeaking={isFelipeSpeaking} isDancing={state.showExplanation} isLoadingAudio={isLoadingAudio} />
+                 <button 
+                   onClick={() => playTTS(currentQ.text)} 
+                   disabled={isLoadingAudio || isFelipeSpeaking}
+                   className={`mario-button ${isLoadingAudio ? 'bg-gray-300' : 'bg-yellow-400'} p-4 rounded-full transition-all active:scale-90`}
+                 >
                     <span className="text-3xl">🔊 REPEAT</span>
                  </button>
                  <p className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mt-2">Listen to the word!</p>
@@ -354,16 +364,16 @@ export default function App() {
                     } else {
                        play8BitNote(ctx, 110, 0.2, 'sawtooth', 0.1);
                     }
-                  }} className={`mario-button flex items-center justify-center py-10 text-7xl transition-all ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-300 border-green-800 scale-105' : 'bg-gray-50'}`}>
+                  }} className={`mario-button flex items-center justify-center py-10 text-7xl transition-all ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-300 border-green-800 scale-105' : 'bg-gray-50 hover:bg-white'}`}>
                     {o}
                   </button>
                 ))}
               </div>
 
               {state.showExplanation && (
-                <div className="mt-8 p-6 bg-yellow-400 border-4 border-black text-center w-full rounded-xl animate-bounce">
-                  <p className="text-2xl font-bold mb-2 uppercase italic">"{currentQ.text}"</p>
-                  <p className="text-[14px] font-bold mb-4">({currentQ.translation})</p>
+                <div className="mt-8 p-6 bg-yellow-400 border-4 border-black text-center w-full rounded-xl animate-bounce shadow-[4px_4px_0px_#000]">
+                  <p className="text-3xl font-bold mb-2 uppercase italic text-black">"{currentQ.text}"</p>
+                  <p className="text-[16px] font-bold mb-4 text-blue-900">({currentQ.translation})</p>
                   <button onClick={() => {
                     if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
                     else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }));
@@ -373,8 +383,7 @@ export default function App() {
             </div>
           ) : isPuzzleLevel && state.activeMission !== 6 ? (
             <div className="flex flex-col">
-              {/* Contenido de Puzzle (Scramble) */}
-              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE!</div>
+              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000] uppercase">PUZZLE!</div>
               <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3">Translate to English:</p>
               <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center rounded-xl shadow-inner">
                  <p className="font-bold text-3xl text-blue-900 leading-tight">"{SCRAMBLE_QUESTIONS[state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1)]?.translation}"</p>
@@ -409,9 +418,8 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Contenido Normal de Selección */}
               <div className="flex flex-col items-center gap-8 mb-10">
-                <VoxelFelipe isDancing={state.showExplanation} isSpeaking={isFelipeSpeaking} />
+                <VoxelFelipe isDancing={state.showExplanation} isSpeaking={isFelipeSpeaking} isLoadingAudio={isLoadingAudio} />
                 <div className="bg-sky-50 border-4 border-black p-6 w-full text-black font-bold text-2xl text-center rounded-2xl min-h-[100px] flex items-center justify-center">
                   {state.showExplanation ? currentQ.text.replace('________', currentQ.correctAnswer) : currentQ.text}
                 </div>
@@ -433,7 +441,7 @@ export default function App() {
                 ))}
               </div>
               {state.showExplanation && (
-                <div className="mt-10 p-6 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce">
+                <div className="mt-10 p-6 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[4px_4px_0px_#000]">
                   <p className="text-[14px] font-bold mb-6 uppercase italic">"{currentQ.translation}"</p>
                   <button onClick={() => setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }))} 
                     className="mario-button w-full text-[16px] py-5 bg-blue-600 text-white uppercase font-black">CONTINUE »</button>
