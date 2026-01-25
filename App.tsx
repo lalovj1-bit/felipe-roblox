@@ -4,9 +4,9 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
 import { GameState, ChatMessage } from './types';
 
-// Helper functions for audio decoding as per guidelines
-function decodeBase64(base64: string) {
-  const binaryString = window.atob(base64);
+// Funciones de decodificación manuales según guías de @google/genai
+function decode(base64: string) {
+  const binaryString = atob(base64);
   const len = binaryString.length;
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) {
@@ -21,19 +21,18 @@ async function decodeAudioData(
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
-  // Aseguramos que el buffer sea un múltiplo de 2 (16 bits) antes de crear el Int16Array
-  const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
-  const dataInt16 = new Int16Array(buffer);
+  // El audio bytes retornado es raw PCM 16-bit
+  const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
-  const audioBuffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
   for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = audioBuffer.getChannelData(channel);
+    const channelData = buffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
       channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
     }
   }
-  return audioBuffer;
+  return buffer;
 }
 
 const missions = [
@@ -45,7 +44,7 @@ const missions = [
   { id: 6, title: 'Word Hunter', icon: '🔊' },
 ];
 
-// --- MOTOR DE AUDIO 8-BIT ---
+// --- MOTOR DE AUDIO 8-BIT PARA EFECTOS ---
 const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: OscillatorType = 'square', volume = 0.06) => {
   if (freq === 0 || !ctx) return;
   try {
@@ -60,7 +59,7 @@ const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: O
     osc.start();
     osc.stop(ctx.currentTime + duration);
   } catch (e) {
-    console.error("Oscillator Error:", e);
+    console.error("Audio Effect Error:", e);
   }
 };
 
@@ -129,7 +128,7 @@ export default function App() {
       }
       return audioContextRef.current;
     } catch (e) {
-      console.error("Failed to init audio context:", e);
+      console.error("Audio Initialization Failed:", e);
       return null;
     }
   };
@@ -172,9 +171,9 @@ export default function App() {
         },
       });
 
-      const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64) {
-        const audioBuffer = await decodeAudioData(decodeBase64(base64), ctx, 24000, 1);
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audioBuffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer; 
         source.connect(ctx.destination);
@@ -211,7 +210,7 @@ export default function App() {
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, felipeMsg] }));
       playTTS(felipeMsg.text);
     } catch (e) {
-      const errorMsg: ChatMessage = { role: 'felipe', text: "Connection error!" };
+      const errorMsg: ChatMessage = { role: 'felipe', text: "Oh! My memory failed. Try again!" };
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, errorMsg] }));
     } finally {
       setIsTyping(false);
@@ -239,9 +238,10 @@ export default function App() {
       } else if (currentQ) {
         setShuffledOptions(shuffle(currentQ.options));
         if (isAudioLevel) {
+          // Pequena espera para asegurar que el navegador permite el audio tras el cambio de pantalla
           const timer = setTimeout(() => {
             playTTS(currentQ.text);
-          }, 600);
+          }, 800);
           return () => clearTimeout(timer);
         }
       }
@@ -279,7 +279,11 @@ export default function App() {
               setState(s => ({ ...s, screen: 'mission_select' })); 
             }
           }} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
-          <button onClick={async () => { await initAudio(); startBGM(); setState(s => ({ ...s, screen: 'chat' })); }} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">TALK TO FELIPE</button>
+          <button onClick={async () => { 
+            await initAudio(); 
+            startBGM(); 
+            setState(s => ({ ...s, screen: 'chat' })); 
+          }} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">TALK TO FELIPE</button>
           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[12px] py-3 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
         </div>
       </div>
@@ -320,9 +324,9 @@ export default function App() {
           const prize = PRIZES.find(p => p.id === m.id);
           return (
             <button key={m.id} onClick={async () => {
-              await initAudio();
+              const ctx = await initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
-              playTTS(`World ${m.id}: ${m.title}`);
+              if (ctx) playTTS(`World ${m.id}: ${m.title}`);
             }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-yellow-50 border-yellow-500' : 'bg-white'}`}>
               <span className="text-6xl">{m.icon}</span>
               <span className="text-[14px] font-bold uppercase">{m.title}</span>
@@ -354,7 +358,10 @@ export default function App() {
               <div className="flex flex-col items-center gap-4 mb-8">
                  <VoxelFelipe isSpeaking={isFelipeSpeaking} isDancing={state.showExplanation} isLoadingAudio={isLoadingAudio} />
                  <button 
-                   onClick={() => playTTS(currentQ.text)} 
+                   onClick={async () => {
+                     await initAudio();
+                     playTTS(currentQ.text);
+                   }} 
                    disabled={isLoadingAudio || isFelipeSpeaking}
                    className={`mario-button ${isLoadingAudio ? 'bg-gray-300' : 'bg-yellow-400'} p-4 rounded-full transition-all active:scale-90`}
                  >
@@ -370,7 +377,7 @@ export default function App() {
                     if (ctx && o === currentQ.correctAnswer) {
                        playMarioCoin(ctx);
                        setState(s => ({ ...s, score: s.score + 15, showExplanation: true, userAnswer: o }));
-                       playTTS(`Correct! ${currentQ.text}`); 
+                       playTTS(`Correct! This is a ${currentQ.text}`); 
                     } else if (ctx) {
                        play8BitNote(ctx, 110, 0.2, 'sawtooth', 0.1);
                     }
@@ -405,7 +412,8 @@ export default function App() {
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} onClick={async () => {
                     const ctx = await initAudio();
-                    const correctWords = (SCRAMBLE_QUESTIONS[state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1)]?.sentence || "").split(' ');
+                    const currentPuzzle = SCRAMBLE_QUESTIONS[state.activeMission === 5 ? 8 + state.currentQuestionIndex : (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1)];
+                    const correctWords = (currentPuzzle?.sentence || "").split(' ');
                     if (w === correctWords[state.selectedWords.length]) {
                       const newSelected = [...state.selectedWords, w];
                       setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: s.scrambleWords.filter((_, idx) => idx !== i) }));
