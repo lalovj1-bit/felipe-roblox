@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SUPER FELIPE - Mario Adventure XL</title>
+    <title>SUPER FELIPE XL - English Puzzle</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <style>
@@ -19,30 +19,30 @@
             background-color: var(--mario-blue);
             color: #ffffff;
             margin: 0;
-            /* Scroll habilitado para mouse y táctil */
-            overflow-y: auto; 
+            /* Scroll habilitado correctamente */
+            overflow-y: auto !important; 
             overflow-x: hidden;
             image-rendering: pixelated;
             user-select: none;
-            font-size: 1.4rem; /* Escala aumentada */
+            font-size: 1.6rem; /* Escala aumentada 20% extra */
         }
         
         .mc-logo {
             font-family: 'Press Start 2P', cursive;
             text-transform: uppercase;
             text-shadow: 4px 4px 0px #000;
-            line-height: 1.4;
+            line-height: 1.5;
         }
 
         .mario-button {
             background-color: #f8f8f8;
-            border: 5px solid #000;
-            box-shadow: 6px 6px 0px #000;
+            border: 6px solid #000;
+            box-shadow: 7px 7px 0px #000;
             color: #000;
             font-family: 'Press Start 2P', cursive;
             transition: all 0.05s;
             cursor: pointer;
-            padding: 16px;
+            padding: 20px;
         }
 
         .mario-button:active {
@@ -52,19 +52,26 @@
 
         .mario-panel {
             background-color: #f8f8f8;
-            border: 6px solid #000;
-            box-shadow: 10px 10px 0px rgba(0,0,0,0.5);
+            border: 8px solid #000;
+            box-shadow: 12px 12px 0px rgba(0,0,0,0.5);
             color: #000;
         }
 
-        /* Contenedor principal para permitir scroll si el contenido excede el alto */
         .game-container {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-bottom: 40px;
+            padding: 20px;
+            padding-bottom: 60px;
         }
+
+        /* Animaciones */
+        @keyframes bounce-small {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-felipe { animation: bounce-small 2s infinite; }
 
         * { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
     </style>
