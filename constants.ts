@@ -2,7 +2,7 @@
 import { Question, ScrambleQuestion } from './types';
 
 export const QUESTIONS: Question[] = [
-  // MUNDO 1: DINO LAND 🦖
+  // MUNDO 1: DINO LAND 🦖 (Niveles 1-9)
   { id: 1, mission: 1, text: "The dinosaur is very ________.", options: ["big", "small", "blue", "fast"], correctAnswer: "big", hint: "Like an elephant!", translation: "El dinosaurio es muy grande.", explanation: "Big es grande." },
   { id: 2, mission: 1, text: "I see a green ________ in the forest.", options: ["tree", "car", "phone", "pizza"], correctAnswer: "tree", hint: "It has leaves.", translation: "Veo un árbol verde en el bosque.", explanation: "Tree es árbol." },
   { id: 3, mission: 1, text: "The sky is ________ today.", options: ["blue", "red", "yellow", "pink"], correctAnswer: "blue", hint: "The color of the ocean.", translation: "El cielo está azul hoy.", explanation: "Blue es azul." },
