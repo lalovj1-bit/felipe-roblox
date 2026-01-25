@@ -1,68 +1,72 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, Modality, Type } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
 import { GameState, Accessory, ChatMessage } from './types';
 
-// --- CONSTANTES ---
+// --- CONSTANTS ---
 const missions = [
-  { id: 1, title: "Space", icon: "🚀", color: "bg-indigo-900" }, 
-  { id: 2, title: "Ocean", icon: "🌊", color: "bg-blue-600" }, 
-  { id: 3, title: "Winter", icon: "❄️", color: "bg-cyan-100" }, 
-  { id: 4, title: "Forest", icon: "🍄", color: "bg-emerald-700" }, 
-  { id: 5, title: "Dinos", icon: "🦖", color: "bg-orange-800" }
+  { id: 1, title: 'Daily Routine', icon: '⏰' },
+  { id: 2, title: 'My Hobbies', icon: '🎮' },
+  { id: 3, title: 'Food Market', icon: '🍎' },
+  { id: 4, title: 'My Clothes', icon: '👕' },
+  { id: 5, title: 'Master Order', icon: '🧩' },
 ];
 
-// --- AUDIO HELPERS ---
-function decode(base64: string): Uint8Array {
-  const binaryString = window.atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-  return bytes;
-}
+// --- MOTOR DE AUDIO 8-BIT ---
+const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: OscillatorType = 'square', volume = 0.1) => {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, ctx.currentTime);
+  gain.gain.setValueAtTime(volume, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + duration);
+};
 
-async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-  }
-  return buffer;
-}
+const playIntroTheme = (ctx: AudioContext) => {
+  const melody = [330, 330, 0, 330, 0, 262, 330, 0, 392, 0, 196];
+  melody.forEach((f, i) => { if(f > 0) setTimeout(() => play8BitNote(ctx, f, 0.15), i * 150); });
+};
 
+const playVictoryFanfare = (ctx: AudioContext) => {
+  // Fanfarria larga estilo Mario
+  [523, 659, 783, 1046, 1318, 1568].forEach((f, i) => {
+    setTimeout(() => play8BitNote(ctx, f, 0.5, 'square', 0.1), i * 120);
+  });
+};
+
+const playTetrisTheme = (ctx: AudioContext) => {
+  const melody = [
+    659, 494, 523, 587, 523, 494, 440, 440, 523, 659, 587, 523, 494, 523, 587, 659, 523, 440, 440
+  ];
+  let time = 0;
+  melody.forEach((f, i) => {
+    setTimeout(() => play8BitNote(ctx, f, 0.3, 'square', 0.08), time);
+    time += 250;
+  });
+};
+
+const playErrorSound = (ctx: AudioContext) => {
+  play8BitNote(ctx, 110, 0.4, 'sawtooth', 0.1);
+};
+
+// --- COMPONENTES VISUALES ---
 const ParticleEffect = () => {
-  const particles = Array.from({ length: 12 }).map((_, i) => {
-    const angle = (i / 12) * Math.PI * 2;
-    const x = Math.cos(angle) * 120;
-    const y = Math.sin(angle) * 120;
+  const particles = Array.from({ length: 15 }).map((_, i) => {
+    const angle = (i / 15) * Math.PI * 2;
+    const x = Math.cos(angle) * 150;
+    const y = Math.sin(angle) * 150;
     return <div key={i} className="xp-orb" style={{ '--tw-translate-x': `${x}px`, '--tw-translate-y': `${y}px` } as any} />;
   });
   return <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{particles}</div>;
 };
 
-const AccessoryLayer = ({ item, isNight }: { item: Accessory, isNight: boolean }) => {
-  if (item === 'none') return isNight ? <rect x="75" y="45" width="4" height="20" fill="#a16207" /> : null;
-  return (
-    <g transform="translate(0, -5)">
-      {item === 'sunglasses' && (
-        <g><rect x="35" y="28" width="15" height="10" fill="#000" /><rect x="55" y="28" width="15" height="10" fill="#000" /><rect x="50" y="32" width="5" height="2" fill="#000" /></g>
-      )}
-      {item === 'safari_hat' && (
-        <g><rect x="20" y="5" width="65" height="12" fill="#a16207" stroke="#000" strokeWidth="2" /><rect x="30" y="-8" width="45" height="15" fill="#a16207" stroke="#000" strokeWidth="2" /></g>
-      )}
-      {item === 'pilot_headset' && (
-        <g><rect x="25" y="15" width="55" height="6" fill="#333" /><rect x="20" y="20" width="12" height="15" fill="#333" /><rect x="73" y="20" width="12" height="15" fill="#333" /></g>
-      )}
-      {isNight && <rect x="75" y="45" width="4" height="20" fill="#a16207" />}
-    </g>
-  );
-};
-
 const VoxelFelipe = ({ isActive, isDancing, isNight, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, isDancing?: boolean, isNight: boolean, size?: string, mood?: string, accessory?: Accessory }) => (
-  <div className={`relative ${size} flex items-center justify-center transition-all duration-500 ${isActive ? 'scale-110' : 'scale-100'} ${isDancing ? 'mc-dance' : ''}`}>
+  <div className={`relative ${size} flex items-center justify-center transition-all duration-500 ${isActive ? 'scale-110' : 'scale-100'} ${isDancing ? 'mc-dance animate-bounce' : ''}`}>
     <svg viewBox="0 0 100 100" className={`w-full h-full drop-shadow-xl ${isNight ? 'brightness-75' : ''}`}>
       <rect x="30" y="45" width="45" height="40" fill={isNight ? "#94a3b8" : "#fbcfe8"} stroke="#000" strokeWidth="2" />
       <rect x="35" y="15" width="35" height="35" fill={isNight ? "#cbd5e1" : "#fdf2f8"} stroke="#000" strokeWidth="2" />
@@ -70,13 +74,7 @@ const VoxelFelipe = ({ isActive, isDancing, isNight, size = "w-32 h-32", mood = 
       <rect x="58" y="30" width="6" height="8" fill={mood === 'sad' ? "#334155" : "#0c4a6e"} />
       <rect x="38" y="42" width="6" height="4" fill="#f472b6" opacity="0.6" />
       <rect x="62" y="42" width="6" height="4" fill="#f472b6" opacity="0.6" />
-      <AccessoryLayer item={accessory} isNight={isNight} />
-      {isNight && (
-        <g>
-          <rect x="75" y="35" width="12" height="12" fill="#f97316" className="animate-pulse" />
-          <rect x="78" y="38" width="6" height="6" fill="#fbbf24" className="animate-pulse" />
-        </g>
-      )}
+      {isNight && <rect x="75" y="45" width="4" height="20" fill="#a16207" />}
     </svg>
     {isDancing && <ParticleEffect />}
   </div>
@@ -93,35 +91,14 @@ export default function App() {
   const [isAudioLoading, setIsAudioLoading] = useState(false);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const tetrisIntervalRef = useRef<any>(null);
 
   const initAudio = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      if (state.screen === 'intro') playIntroTheme(audioContextRef.current);
     }
   };
-
-  useEffect(() => {
-    const gameBody = document.getElementById('game-body');
-    if (gameBody) {
-      gameBody.classList.toggle('is-night', state.isNight);
-    }
-  }, [state.isNight]);
-
-  useEffect(() => {
-    const fetchDaily = async () => {
-      try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const res = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: 'Give me a very short fun dinosaur fact for a 10 year old in English. Max 8 words. No markdown.'
-        });
-        setState(s => ({ ...s, dailyChallenge: res.text || 'T-Rex had tiny arms!' }));
-      } catch (err) {
-        setState(s => ({ ...s, dailyChallenge: 'Dinos are amazing!' }));
-      }
-    };
-    fetchDaily();
-  }, []);
 
   const playTTS = async (text: string) => {
     try {
@@ -138,152 +115,208 @@ export default function App() {
       });
       const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64 && audioContextRef.current) {
-        const buffer = await decodeAudioData(decode(base64), audioContextRef.current, 24000, 1);
+        const binaryString = window.atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+        const dataInt16 = new Int16Array(bytes.buffer);
+        const buffer = audioContextRef.current.createBuffer(1, dataInt16.length, 24000);
+        const channelData = buffer.getChannelData(0);
+        for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
         const source = audioContextRef.current.createBufferSource();
         source.buffer = buffer; 
         source.connect(audioContextRef.current.destination);
         source.onended = () => setIsAudioLoading(false);
         source.start();
-      } else {
-        setIsAudioLoading(false);
       }
-    } catch { 
-      setIsAudioLoading(false); 
-    }
-  };
-
-  const handleChat = async (input: string) => {
-    if (!input.trim() || isChatLoading) return;
-    const newHistory: ChatMessage[] = [...state.chatHistory, { role: 'user', text: input }];
-    setState(s => ({ ...s, chatHistory: newHistory, hunger: Math.max(0, s.hunger - 5) }));
-    setIsChatLoading(true);
-    try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const res = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: input,
-        config: { systemInstruction: "You are Felipe. Talk to a kid in simple English." }
-      });
-      const felipeText = res.text || "Cool!";
-      setState(s => ({ ...s, chatHistory: [...newHistory, { role: 'felipe', text: felipeText }] }));
-      playTTS(felipeText);
-    } finally { 
-      setIsChatLoading(false); 
-    }
+    } catch { setIsAudioLoading(false); }
   };
 
   const checkAnswer = (opt: string, currentQ: any) => {
+    initAudio();
     if (opt === currentQ.correctAnswer) {
-      setState(s => ({ 
-        ...s, 
-        userAnswer: opt, 
-        score: s.score + 10, 
-        hunger: Math.min(100, s.hunger + 15), 
-        showExplanation: true 
-      }));
-      playTTS("Yes! That is correct.");
+      if (audioContextRef.current) playVictoryFanfare(audioContextRef.current);
+      setState(s => ({ ...s, score: s.score + 10, attempts: 0, showExplanation: true, hunger: Math.min(100, s.hunger + 15) }));
+      playTTS("Correct! You are amazing!");
     } else {
-      setState(s => ({ ...s, hunger: Math.max(0, s.hunger - 10) }));
-      playTTS("Incorrect, try again.");
+      if (audioContextRef.current) playErrorSound(audioContextRef.current);
+      setState(s => ({ ...s, attempts: s.attempts + 1, hunger: Math.max(0, s.hunger - 10) }));
+      playTTS("Not quite! Try again.");
     }
   };
 
-  if (state.screen === 'intro') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6" onClick={initAudio}>
-        <div className="mc-panel p-10 max-w-lg w-full text-center shadow-[8px_8px_0px_#000]">
-          <h1 className="mc-logo mb-6 text-4xl leading-tight">FELIPE QUEST</h1>
-          <div className="bg-yellow-400 border-4 border-black p-3 mb-8 transform -rotate-2">
-            <p className="text-black font-bold uppercase text-xs tracking-widest animate-pulse">
-               {state.dailyChallenge}
-            </p>
-          </div>
-          <div className="flex justify-center mb-10">
-            <VoxelFelipe isActive={true} isDancing={state.hunger > 50} isNight={state.isNight} size="w-56 h-56" accessory={state.equippedAccessory} />
-          </div>
-          <div className="flex flex-col gap-4">
-            <button onClick={() => { setState(s => ({ ...s, screen: 'mission_select' })); playTTS("Select your mission!"); }} className="mc-button w-full text-xl py-5 bg-green-500 hover:bg-green-400">PLAY NOW</button>
-            <div className="grid grid-cols-2 gap-4">
-              <button onClick={() => { setState(s => ({ ...s, screen: 'chat' })); playTTS("Let's talk!"); }} className="mc-button bg-cyan-400 hover:bg-cyan-300">CHAT</button>
-              <button onClick={() => { setState(s => ({ ...s, screen: 'passport' })); playTTS("Welcome to your passport."); }} className="mc-button bg-orange-400 hover:bg-orange-300">REWARDS</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Lógica específica Misión 5
+  const startScramble = (index: number) => {
+    const q = SCRAMBLE_QUESTIONS[index];
+    const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
+    setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false, attempts: 0 }));
+  };
 
-  if (state.screen === 'chat') {
-    return (
-      <div className="min-h-screen p-6 flex flex-col items-center">
-        <div className="mc-panel w-full max-w-2xl p-6 bg-[#333] shadow-[8px_8px_0px_#000]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="mc-logo text-sm text-white">FELIPE TERMINAL</h2>
-            <div className="flex gap-3 items-center bg-black/40 p-2 border-2 border-white/20">
-              <span className="text-xs text-white font-bold">ENERGY:</span>
-              <div className="w-24 hunger-bar"><div className="hunger-fill" style={{ width: `${state.hunger}%` }} /></div>
-            </div>
-          </div>
-          <div className="chat-container mb-6 rounded-none border-4 border-black shadow-inner">
-            {state.chatHistory.map((m, i) => (
-              <div key={i} className={`p-2 ${m.role === 'felipe' ? 'msg-felipe bg-green-900/20' : 'msg-user bg-cyan-900/20'}`}>
-                <span className="font-bold underline">{m.role === 'felipe' ? 'FELIPE' : 'YOU'}</span>: {m.text}
-              </div>
-            ))}
-            {isChatLoading && <div className="msg-felipe animate-pulse">&gt; Felipe is typing...</div>}
-          </div>
-          <div className="flex gap-4">
-            <input 
-              id="chat-in" 
-              type="text" 
-              autoFocus
-              className="flex-1 bg-black text-white border-4 border-white p-3 font-mono text-xl outline-none focus:border-cyan-400 transition-colors" 
-              placeholder="Type..." 
-              onKeyDown={(e) => { if(e.key === 'Enter') { handleChat(e.currentTarget.value); e.currentTarget.value = ''; } }} 
-            />
-            <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button bg-red-500 text-white">EXIT</button>
-          </div>
-        </div>
+  const handleWordTap = (word: string, index: number) => {
+    initAudio();
+    const newSelected = [...state.selectedWords, word];
+    const newScramble = [...state.scrambleWords];
+    newScramble.splice(index, 1);
+    
+    setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: newScramble }));
+
+    if (newScramble.length === 0) {
+      const finalSentence = newSelected.join(' ');
+      const correct = SCRAMBLE_QUESTIONS[state.currentQuestionIndex].sentence;
+      if (finalSentence.toLowerCase() === correct.toLowerCase()) {
+        if (audioContextRef.current) playVictoryFanfare(audioContextRef.current);
+        setState(s => ({ ...s, score: s.score + 20, showExplanation: true, attempts: 0 }));
+        playTTS("Perfect! You ordered the sentence correctly!");
+      } else {
+        if (audioContextRef.current) playErrorSound(audioContextRef.current);
+        const resetWords = correct.split(' ').sort(() => Math.random() - 0.5);
+        setState(s => ({ ...s, attempts: s.attempts + 1, selectedWords: [], scrambleWords: resetWords }));
+        playTTS("Oops! That's not the order. Try again!");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (state.screen === 'game_over') {
+      if (audioContextRef.current) {
+        playTetrisTheme(audioContextRef.current);
+        tetrisIntervalRef.current = setInterval(() => playTetrisTheme(audioContextRef.current!), 5000);
+      }
+    } else {
+      if (tetrisIntervalRef.current) clearInterval(tetrisIntervalRef.current);
+    }
+    return () => clearInterval(tetrisIntervalRef.current);
+  }, [state.screen]);
+
+  if (state.screen === 'intro') return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-sky-400" onClick={initAudio}>
+      <div className="mc-panel p-12 max-w-lg w-full text-center shadow-[10px_10px_0px_#000] bg-white">
+        <h1 className="mc-logo mb-10 text-4xl text-black">FELIPE QUEST</h1>
+        <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-64 h-64 mx-auto mb-10" />
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6 bg-green-500 text-white">START ADVENTURE</button>
       </div>
-    );
-  }
+    </div>
+  );
+
+  if (state.screen === 'mission_select') return (
+    <div className="min-h-screen p-10 flex flex-col items-center bg-sky-200">
+      <h1 className="mc-logo mb-12 text-black text-3xl">SELECT WORLD</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full max-w-5xl">
+        {missions.map(m => (
+          <button 
+            key={m.id} 
+            onClick={() => { 
+              if(m.id === 5) {
+                setState(s => ({ ...s, screen: 'playing', activeMission: 5, currentQuestionIndex: 0 }));
+                startScramble(0);
+              } else {
+                setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false, attempts: 0 }));
+              }
+              playTTS(`Entering ${m.title}`);
+            }} 
+            className="mc-panel p-8 hover:scale-105 transition-all flex flex-col items-center gap-6 bg-white"
+          >
+            <span className="text-8xl">{m.icon}</span>
+            <span className="font-bold text-xl text-black uppercase">{m.title}</span>
+          </button>
+        ))}
+      </div>
+      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mt-16 mc-button bg-gray-400">BACK</button>
+    </div>
+  );
 
   if (state.screen === 'playing') {
+    if (state.activeMission === 5) {
+      const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
+      return (
+        <div className="min-h-screen p-6 flex flex-col items-center bg-indigo-500">
+           <header className="w-full max-w-2xl flex justify-between bg-black/20 p-4 border-4 border-black mb-8">
+             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-500 text-white">QUIT</button>
+             <div className="text-white font-bold text-2xl">XP: {state.score}</div>
+           </header>
+           <main className="mc-panel w-full max-w-2xl p-10 bg-white">
+              <h2 className="text-center text-xl font-bold mb-4 uppercase text-blue-600">MISSION 5: TRANSLATE!</h2>
+              <div className="bg-yellow-100 p-6 border-4 border-black text-center text-3xl mb-10">
+                "{q.translation}"
+              </div>
+              
+              <div className="min-h-[80px] border-b-4 border-dashed border-gray-400 flex flex-wrap gap-3 p-4 mb-10 justify-center">
+                {state.selectedWords.map((w, i) => (
+                  <span key={i} className="bg-blue-600 text-white p-3 border-2 border-black font-bold text-xl animate-in zoom-in">{w}</span>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-4 justify-center">
+                {state.scrambleWords.map((w, i) => (
+                  <button key={i} onClick={() => handleWordTap(w, i)} className="mc-button bg-white text-black text-xl hover:bg-yellow-200">{w}</button>
+                ))}
+              </div>
+
+              {state.attempts >= 3 && !state.showExplanation && (
+                <div className="mt-10 p-4 bg-orange-100 border-4 border-orange-500 text-black text-center animate-pulse">
+                  <p className="font-bold">FELIPE SAYS: The first word is "{q.sentence.split(' ')[0]}"!</p>
+                </div>
+              )}
+
+              {state.showExplanation && (
+                <div className="mt-10 p-6 bg-green-100 border-4 border-black text-center">
+                  <p className="text-2xl font-bold text-green-700 mb-4">AWESOME! "{q.sentence}"</p>
+                  <button onClick={() => {
+                    if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
+                      const next = state.currentQuestionIndex + 1;
+                      setState(s => ({ ...s, currentQuestionIndex: next }));
+                      startScramble(next);
+                    } else {
+                      setState(s => ({ ...s, screen: 'game_over' }));
+                    }
+                  }} className="mc-button w-full bg-blue-500 text-white">NEXT LEVEL »</button>
+                </div>
+              )}
+           </main>
+        </div>
+      );
+    }
+
     const missionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
     const currentQ = missionQs[state.currentQuestionIndex];
     return (
-      <div className="min-h-screen flex flex-col items-center p-6">
-        <header className="w-full max-w-3xl flex justify-between items-center mb-10 bg-black/30 p-4 rounded-none border-4 border-black">
-           <div className="flex gap-4">
-             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-600 text-white text-[10px]">LEAVE</button>
-             <div className="mc-panel px-4 text-sm font-bold flex items-center bg-white">XP: {state.score}</div>
-           </div>
-           <div className="flex flex-col items-end">
-             <div className="w-40 hunger-bar"><div className="hunger-fill" style={{ width: `${state.hunger}%` }} /></div>
-           </div>
+      <div className="min-h-screen flex flex-col items-center p-6 bg-emerald-400">
+        <header className="w-full max-w-3xl flex justify-between p-4 mb-8 bg-black/20 border-4 border-black">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button bg-red-600 text-white">LEAVE</button>
+          <div className="text-white text-2xl font-bold">XP: {state.score}</div>
         </header>
-        <main className="mc-panel w-full max-w-2xl p-10 relative shadow-[10px_10px_0px_#000]">
-          <div className="flex flex-col md:flex-row gap-10 mb-10 items-center">
-             <VoxelFelipe isActive={state.showExplanation} mood={state.hunger < 20 ? 'sad' : 'normal'} isNight={state.isNight} isDancing={state.showExplanation} accessory={state.equippedAccessory} />
-             <div className="bg-white border-4 border-black p-6 flex-1 text-black font-bold text-2xl leading-relaxed relative">
-               "{currentQ.text}"
-               <div className="absolute -left-4 top-10 w-6 h-6 bg-white border-l-4 border-b-4 border-black rotate-45 hidden md:block"></div>
-             </div>
+
+        <main className="mc-panel w-full max-w-2xl p-10 bg-white relative">
+          <div className="flex flex-col md:flex-row gap-8 items-center mb-10">
+            <VoxelFelipe isActive={state.showExplanation} isDancing={state.showExplanation} mood={state.attempts >= 3 ? 'sad' : 'normal'} isNight={state.isNight} size="w-48 h-48" />
+            <div className="bg-blue-50 border-4 border-black p-6 flex-1 text-black font-bold text-2xl leading-relaxed">
+              "{currentQ.text}"
+            </div>
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {currentQ.options.map((o, i) => (
-              <button key={i} disabled={state.showExplanation || isAudioLoading} onClick={() => checkAnswer(o, currentQ)} className="mc-button text-lg py-5 capitalize">
+              <button key={i} disabled={state.showExplanation} onClick={() => checkAnswer(o, currentQ)} className="mc-button text-xl py-6 bg-gray-100 hover:bg-yellow-100">
                 {o}
               </button>
             ))}
           </div>
+
+          {state.attempts >= 3 && !state.showExplanation && (
+            <div className="mt-8 p-4 bg-orange-100 border-4 border-orange-400 text-center animate-bounce">
+              <p className="font-bold text-orange-800">PISTA: {currentQ.hint}</p>
+            </div>
+          )}
+
           {state.showExplanation && (
-            <div className="mt-10 p-6 bg-yellow-100 border-4 border-black text-black text-center shadow-[4px_4px_0px_#000]">
-              <p className="text-xl font-bold mb-2">"{currentQ.translation}"</p>
+            <div className="mt-10 p-8 bg-yellow-200 border-4 border-black text-center animate-in slide-in-from-bottom">
+              <p className="text-2xl font-bold mb-4">"{currentQ.translation}"</p>
               <button onClick={() => {
-                if (state.currentQuestionIndex + 1 < missionQs.length) setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false, userAnswer: '' }));
-                else { setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] })); playTTS("Congratulations! Mission complete!"); }
-              }} className="mc-button w-full bg-blue-500 text-white text-lg">NEXT »</button>
+                if (state.currentQuestionIndex + 1 < missionQs.length) {
+                  setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false, attempts: 0 }));
+                } else {
+                  setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
+                }
+              }} className="mc-button w-full bg-blue-600 text-white text-xl">NEXT MISSION »</button>
             </div>
           )}
         </main>
@@ -291,51 +324,15 @@ export default function App() {
     );
   }
 
-  if (state.screen === 'mission_select') return (
-    <div className="min-h-screen p-10 flex flex-col items-center">
-      <h1 className="mc-logo mb-12 text-3xl">CHOOSE MISSION</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full max-w-5xl">
-        {missions.map(m => (
-          <button 
-            key={m.id} 
-            onClick={() => { setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false })); playTTS(`Starting ${m.title} mission.`); }} 
-            className="mc-panel p-8 hover:scale-105 transition-all flex flex-col items-center gap-6 shadow-[8px_8px_0px_#000]"
-          >
-            <span className="text-7xl">{m.icon}</span>
-            <span className="font-bold text-xl text-black uppercase">{m.title}</span>
-          </button>
-        ))}
-      </div>
-      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mt-16 mc-button">BACK</button>
-    </div>
-  );
-
-  if (state.screen === 'passport') return (
-    <div className="min-h-screen p-8 flex flex-col items-center bg-[#2d3748]">
-      <div className="mc-panel p-10 w-full max-w-3xl bg-white shadow-[12px_12px_0px_#000]">
-        <h1 className="mc-logo text-black mb-10 text-center">PASSPORT</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {missions.map(m => (
-            <div key={m.id} className={`p-6 border-4 border-black flex items-start gap-4 ${state.stamps.includes(m.id) ? 'bg-white' : 'bg-gray-200 opacity-40'}`}>
-               <div className="text-5xl">{m.icon}</div>
-               <div className="flex-1">
-                 <p className="text-sm font-bold text-black uppercase">{m.title}</p>
-                 {state.stamps.includes(m.id) && <p className="text-[10px] text-green-600 font-bold">STAMPED!</p>}
-               </div>
-            </div>
-          ))}
-        </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full mt-12 bg-black text-white py-5">EXIT</button>
-      </div>
-    </div>
-  );
-
   if (state.screen === 'game_over') return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-black/90">
-      <div className="mc-panel p-12 text-center max-w-md w-full bg-white shadow-[16px_16px_0px_#222]">
-        <h2 className="mc-logo text-green-600 mb-8 text-3xl">WINNER!</h2>
-        <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-56 h-56" accessory={state.equippedAccessory} />
-        <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full py-5 text-xl bg-orange-500 text-white mt-8">PASSPORT</button>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-black">
+      <div className="mc-panel p-12 text-center max-w-lg w-full bg-white shadow-[20px_20px_0px_#444]">
+        <h2 className="mc-logo text-blue-600 mb-10 text-4xl animate-pulse">MISSION CLEAR!</h2>
+        <div className="mb-10 scale-150 transform transition-transform duration-1000 rotate-12">
+          <VoxelFelipe isActive={true} isDancing={true} isNight={state.isNight} size="w-64 h-64 mx-auto" />
+        </div>
+        <p className="font-bold text-3xl mb-10 text-black font-mono">TOTAL XP: {state.score}</p>
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full py-6 text-2xl bg-orange-500 text-white">PLAY AGAIN</button>
       </div>
     </div>
   );
