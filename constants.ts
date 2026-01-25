@@ -2,7 +2,7 @@
 import { Question, ScrambleQuestion } from './types';
 
 export const QUESTIONS: Question[] = [
-  // MUNDO 1: DINO LAND 🦖 (Niveles 1-9)
+  // MUNDO 1: DINO LAND 🦖
   { id: 1, mission: 1, text: "The dinosaur is very ________.", options: ["big", "small", "blue", "fast"], correctAnswer: "big", hint: "Like an elephant!", translation: "El dinosaurio es muy grande.", explanation: "Big es grande." },
   { id: 2, mission: 1, text: "I see a green ________ in the forest.", options: ["tree", "car", "phone", "pizza"], correctAnswer: "tree", hint: "It has leaves.", translation: "Veo un árbol verde en el bosque.", explanation: "Tree es árbol." },
   { id: 3, mission: 1, text: "The sky is ________ today.", options: ["blue", "red", "yellow", "pink"], correctAnswer: "blue", hint: "The color of the ocean.", translation: "El cielo está azul hoy.", explanation: "Blue es azul." },
@@ -33,7 +33,29 @@ export const QUESTIONS: Question[] = [
   { id: 26, mission: 3, text: "I eat with a ________.", options: ["fork", "shoe", "hat", "book"], correctAnswer: "fork", hint: "Used for pasta.", translation: "Como con un tenedor.", explanation: "Fork es tenedor." },
   { id: 27, mission: 3, text: "Water is ________.", options: ["good", "bad", "hot", "dry"], correctAnswer: "good", hint: "Essential for life.", translation: "El agua es buena.", explanation: "Good es bueno." },
   { id: 28, mission: 3, text: "The pizza is ________.", options: ["delicious", "sad", "angry", "blue"], correctAnswer: "delicious", hint: "Very yummy.", translation: "La pizza está deliciosa.", explanation: "Delicious es delicioso." },
-  { id: 29, mission: 3, text: "I like ________ juice.", options: ["apple", "bread", "cheese", "meat"], correctAnswer: "apple", hint: "From a red fruit.", translation: "Me gusta el zumo de manzana.", explanation: "Apple es manzana." }
+  { id: 29, mission: 3, text: "I like ________ juice.", options: ["apple", "bread", "cheese", "meat"], correctAnswer: "apple", hint: "From a red fruit.", translation: "Me gusta el zumo de manzana.", explanation: "Apple es manzana." },
+
+  // MUNDO 4: PIRATE COVE 🏴‍☠️
+  { id: 31, mission: 4, text: "The pirate has a ________.", options: ["ship", "car", "plane", "bicycle"], correctAnswer: "ship", hint: "Travels on water.", translation: "El pirata tiene un barco.", explanation: "Ship es barco." },
+  { id: 32, mission: 4, text: "The ocean is ________.", options: ["deep", "hot", "dry", "small"], correctAnswer: "deep", hint: "Goes down far.", translation: "El océano es profundo.", explanation: "Deep es profundo." },
+  { id: 33, mission: 4, text: "I found a gold ________.", options: ["coin", "leaf", "bread", "sock"], correctAnswer: "coin", hint: "Money!", translation: "Encontré una moneda de oro.", explanation: "Coin es moneda." },
+  { id: 34, mission: 4, text: "The shark is ________.", options: ["scary", "sweet", "pink", "tiny"], correctAnswer: "scary", hint: "Watch out!", translation: "El tiburón da miedo.", explanation: "Scary es aterrador." },
+  { id: 35, mission: 4, text: "Look at the ________.", options: ["map", "book", "door", "table"], correctAnswer: "map", hint: "Shows the way.", translation: "Mira el mapa.", explanation: "Map es mapa." },
+  { id: 36, mission: 4, text: "The island is ________.", options: ["beautiful", "sad", "hungry", "angry"], correctAnswer: "beautiful", hint: "Very pretty.", translation: "La isla es hermosa.", explanation: "Beautiful es hermoso." },
+  { id: 37, mission: 4, text: "The parrots can ________.", options: ["talk", "swim", "cook", "drive"], correctAnswer: "talk", hint: "They say hello!", translation: "Los loros pueden hablar.", explanation: "Talk es hablar." },
+  { id: 38, mission: 4, text: "The sand is ________.", options: ["yellow", "purple", "blue", "green"], correctAnswer: "yellow", hint: "Color of the sun.", translation: "La arena es amarilla.", explanation: "Yellow es amarillo." },
+  { id: 39, mission: 4, text: "Swim in the ________.", options: ["sea", "street", "mountain", "park"], correctAnswer: "sea", hint: "The blue water.", translation: "Nada en el mar.", explanation: "Sea es mar." },
+
+  // MUNDO 5: STAR GALAXY 🌌
+  { id: 41, mission: 5, text: "The moon is ________.", options: ["white", "black", "red", "green"], correctAnswer: "white", hint: "Bright at night.", translation: "La luna es blanca.", explanation: "White es blanco." },
+  { id: 42, mission: 5, text: "I see a big ________.", options: ["planet", "house", "dog", "cat"], correctAnswer: "planet", hint: "Like Earth or Mars.", translation: "Veo un planeta grande.", explanation: "Planet es planeta." },
+  { id: 43, mission: 5, text: "The rocket is ________.", options: ["fast", "slow", "quiet", "small"], correctAnswer: "fast", hint: "Goes quickly.", translation: "El cohete es rápido.", explanation: "Fast es rápido." },
+  { id: 44, mission: 5, text: "Aliens have ________ skin.", options: ["green", "pink", "brown", "black"], correctAnswer: "green", hint: "Classic space color.", translation: "Los aliens tienen piel verde.", explanation: "Green es verde." },
+  { id: 45, mission: 5, text: "Space is very ________.", options: ["dark", "bright", "sunny", "hot"], correctAnswer: "dark", hint: "No light between stars.", translation: "El espacio es muy oscuro.", explanation: "Dark es oscuro." },
+  { id: 46, mission: 5, text: "The stars are ________.", options: ["far", "near", "big", "blue"], correctAnswer: "far", hint: "Not close.", translation: "Las estrellas están lejos.", explanation: "Far es lejos." },
+  { id: 47, mission: 5, text: "I am an ________.", options: ["astronaut", "doctor", "chef", "teacher"], correctAnswer: "astronaut", hint: "Wears a space suit.", translation: "Soy un astronauta.", explanation: "Astronaut es astronauta." },
+  { id: 48, mission: 5, text: "Gravity is ________.", options: ["zero", "one", "ten", "hundred"], correctAnswer: "zero", hint: "You can float!", translation: "La gravedad es cero.", explanation: "Zero es cero." },
+  { id: 49, mission: 5, text: "Look through the ________.", options: ["telescope", "mirror", "window", "door"], correctAnswer: "telescope", hint: "See far away.", translation: "Mira por el telescopio.", explanation: "Telescope es telescopio." }
 ];
 
 export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
