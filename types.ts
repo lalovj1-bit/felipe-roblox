@@ -41,11 +41,11 @@ export interface GameState {
   score: number;
   coins: number;
   errorsInMission: number;
-  missionStars: Record<number, number>; // missionId -> 1, 2, or 3 stars
+  missionStars: Record<number, number>; // missionId -> 1, 2, o 3 estrellas
   isNight: boolean;
   feedbackType: FeedbackType;
   showExplanation: boolean;
-  stamps: number[]; // Completed mission IDs
+  stamps: number[]; // IDs de misiones completadas
   unlockedAccessories: Accessory[];
   equippedAccessory: Accessory;
   scrambleWords: string[];
@@ -53,3 +53,4 @@ export interface GameState {
   chatHistory: ChatMessage[];
   volumeSettings: VolumeSettings;
 }
+
