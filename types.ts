@@ -8,7 +8,6 @@ export interface Question {
   hint: string;
   explanation: string;
   translation: string;
-  audioUrl?: string;
 }
 
 export interface ScrambleQuestion {
@@ -18,13 +17,19 @@ export interface ScrambleQuestion {
 }
 
 export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
-export type GameScreen = 'intro' | 'mission_select' | 'playing' | 'game_over' | 'passport' | 'chat';
+export type GameScreen = 'intro' | 'mission_select' | 'playing' | 'summary' | 'passport' | 'chat' | 'settings';
 
 export type Accessory = 'none' | 'sunglasses' | 'safari_hat' | 'pilot_headset' | 'party_ears' | 'camera';
 
 export interface ChatMessage {
   role: 'user' | 'felipe';
   text: string;
+}
+
+export interface VolumeSettings {
+  bgm: number;
+  sfx: number;
+  voice: number;
 }
 
 export interface GameState {
@@ -34,18 +39,17 @@ export interface GameState {
   userAnswer: string;
   attempts: number;
   score: number;
-  hunger: number; // 0 to 100
+  coins: number;
+  errorsInMission: number;
+  missionStars: Record<number, number>; // missionId -> 1, 2, or 3 stars
   isNight: boolean;
   feedbackType: FeedbackType;
   showExplanation: boolean;
-  stamps: number[]; 
-  postcards: Record<number, string>; 
-  diaries: Record<number, string>;
-  isGeneratingPostcard: boolean;
-  equippedAccessory: Accessory;
+  stamps: number[]; // Completed mission IDs
   unlockedAccessories: Accessory[];
+  equippedAccessory: Accessory;
   scrambleWords: string[];
   selectedWords: string[];
   chatHistory: ChatMessage[];
-  dailyChallenge: string;
+  volumeSettings: VolumeSettings;
 }
