@@ -1,8 +1,38 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
 import { GameState, ChatMessage } from './types';
+
+// Helper functions for audio decoding as per guidelines
+function decodeBase64(base64: string) {
+  const binaryString = window.atob(base64);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): Promise<AudioBuffer> {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
 
 const missions = [
   { id: 1, title: 'Dino Land', icon: '🦖' },
@@ -40,8 +70,8 @@ const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
 const VoxelFelipe = ({ isDancing, isSpeaking }: { isDancing?: boolean, isSpeaking?: boolean }) => (
   <div className={`relative w-40 h-40 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
     {isSpeaking && (
-      <div className="absolute -top-10 -right-10 bg-white border-4 border-black p-2 rounded-xl text-xs font-bold animate-pulse shadow-md z-10">
-        📢 SPEAKING...
+      <div className="absolute -top-10 -right-10 bg-white border-4 border-black p-2 rounded-xl text-xs font-bold animate-pulse shadow-md z-10 text-black">
+        📢 HABLANDO...
       </div>
     )}
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
@@ -69,44 +99,57 @@ export default function App() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const initAudio = () => {
+  const initAudio = async () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
     }
-    if (audioContextRef.current.state === 'suspended') audioContextRef.current.resume();
+    if (audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+    return audioContextRef.current;
   };
 
   const playTTS = async (text: string) => {
     try {
+      console.log("Felipe intentando hablar:", text);
+      const ctx = await initAudio();
       setIsFelipeSpeaking(true);
-      initAudio();
+      
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text }] }],
         config: { 
-          responseModalities: [Modality.AUDIO], 
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } } 
+          responseModalities: ['AUDIO'], 
+          speechConfig: { 
+            voiceConfig: { 
+              prebuiltVoiceConfig: { voiceName: 'Kore' } 
+            } 
+          } 
         },
       });
+
       const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64 && audioContextRef.current) {
-        const binaryString = window.atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-        const dataInt16 = new Int16Array(bytes.buffer);
-        const buffer = audioContextRef.current.createBuffer(1, dataInt16.length, 24000);
-        const channelData = buffer.getChannelData(0);
-        for (let i = 0; i < dataInt16.length; i++) channelData[i] = dataInt16[i] / 32768.0;
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = buffer; 
-        source.connect(audioContextRef.current.destination);
+      
+      if (base64) {
+        const audioBuffer = await decodeAudioData(
+          decodeBase64(base64),
+          ctx,
+          24000,
+          1
+        );
+        
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer; 
+        source.connect(ctx.destination);
         source.onended = () => setIsFelipeSpeaking(false);
         source.start();
       } else {
+        console.warn("No se recibió data de audio de la API");
         setIsFelipeSpeaking(false);
       }
-    } catch { 
+    } catch (error) { 
+      console.error("Error en playTTS:", error);
       setIsFelipeSpeaking(false);
     }
   };
@@ -130,6 +173,7 @@ export default function App() {
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, felipeMsg] }));
       playTTS(felipeMsg.text);
     } catch (e) {
+      console.error("Chat error:", e);
       const errorMsg: ChatMessage = { role: 'felipe', text: "Oh no! My dino-brain is tired. Let's try later! (¡Oh no! Mi cerebro dino está cansado. ¡Probemos luego!)" };
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, errorMsg] }));
     } finally {
@@ -170,7 +214,7 @@ export default function App() {
   }, [state.screen, state.currentQuestionIndex, state.activeMission, missionQs, isPuzzleLevel]);
 
   if (state.screen === 'intro') return (
-    <div className="game-container justify-center bg-[#5c94fc]" onClick={() => { initAudio(); playIntroTheme(audioContextRef.current!); }}>
+    <div className="game-container justify-center bg-[#5c94fc]" onClick={async () => { const ctx = await initAudio(); playIntroTheme(ctx); }}>
       <div className="mario-panel p-10 max-w-[480px] w-full text-center">
         <h1 className="mc-logo text-2xl text-black mb-4">SUPER FELIPE Y GUILLE</h1>
         <div className="bg-yellow-400 border-4 border-black inline-block px-8 py-3 mb-8 text-center">
@@ -232,8 +276,8 @@ export default function App() {
           const done = state.stamps.includes(m.id);
           const prize = PRIZES.find(p => p.id === m.id);
           return (
-            <button key={m.id} onClick={() => {
-              initAudio();
+            <button key={m.id} onClick={async () => {
+              await initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
               playTTS(`World ${m.id}`);
             }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-yellow-50 border-yellow-500' : 'bg-white'}`}>
@@ -288,8 +332,8 @@ export default function App() {
 
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {state.scrambleWords.map((w, i) => (
-                  <button key={i} onClick={() => {
-                    initAudio();
+                  <button key={i} onClick={async () => {
+                    const ctx = await initAudio();
                     const nextWordIndex = state.selectedWords.length;
                     const correctWords = puzzleData.sentence.split(' ');
                     if (w === correctWords[nextWordIndex]) {
@@ -297,9 +341,8 @@ export default function App() {
                       const newPool = state.scrambleWords.filter((_, idx) => idx !== i);
                       setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: newPool }));
                       if (newSelected.length === correctWords.length) {
-                        if (audioContextRef.current) playCorrectSound(audioContextRef.current);
+                        playCorrectSound(ctx);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        // Refuerzo auditivo: Felipe lee la oración completa en inglés al completar el puzzle
                         playTTS(puzzleData.sentence); 
                         setTimeout(() => {
                            if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
@@ -307,7 +350,7 @@ export default function App() {
                         }, 2500);
                       }
                     } else {
-                      if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.4, 'sawtooth');
+                      play8BitNote(ctx, 110, 0.4, 'sawtooth');
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(puzzleData.sentence.split(' ')) }));
                       playTTS("Try again!");
                     }
@@ -325,15 +368,15 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {shuffledOptions.map((o, i) => (
-                  <button key={i} disabled={state.showExplanation} onClick={() => {
+                  <button key={i} disabled={state.showExplanation} onClick={async () => {
+                    const ctx = await initAudio();
                     if (o === currentQ.correctAnswer) {
-                       if (audioContextRef.current) playCorrectSound(audioContextRef.current);
+                       playCorrectSound(ctx);
                        const fullSentence = currentQ.text.replace('________', currentQ.correctAnswer);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
-                       // Refuerzo auditivo: Felipe lee la oración completa en inglés al acertar
                        playTTS(fullSentence); 
                     } else {
-                       if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.2, 'sawtooth');
+                       play8BitNote(ctx, 110, 0.2, 'sawtooth');
                        playTTS("Try another!");
                     }
                   }} className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
