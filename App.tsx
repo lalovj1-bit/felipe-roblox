@@ -100,7 +100,6 @@ export default function App() {
     QUESTIONS.filter(q => q.mission === state.activeMission), 
   [state.activeMission]);
 
-  // Lógica de Puzzle: Nivel 5 (index 4) y Nivel 10 (index 9)
   const isPuzzleLevel = (state.currentQuestionIndex + 1) % 5 === 0;
 
   useEffect(() => {
@@ -110,9 +109,8 @@ export default function App() {
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
         setState(s => ({ ...s, scrambleWords: shuffle(puzzleData.sentence.split(' ')), selectedWords: [] }));
       } else {
-        // Ajustar el índice para ignorar los puzzles en la lista de preguntas normales
         let qIdx = state.currentQuestionIndex;
-        if (qIdx > 4) qIdx -= 1; // Si pasó el primer puzzle, retrocede 1 en la lista QUESTIONS
+        if (qIdx > 4) qIdx -= 1;
         
         const currentQ = missionQs[qIdx];
         if (currentQ) {
@@ -181,19 +179,19 @@ export default function App() {
           </div>
         </header>
 
-        <main className="mario-panel w-full max-w-[500px] p-10 bg-white flex flex-col shadow-2xl">
+        <main className="mario-panel w-full max-w-[500px] p-8 bg-white flex flex-col shadow-2xl">
           {isPuzzleLevel ? (
             <div className="flex flex-col">
               <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE TIME!</div>
-              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3">Goal Sentence:</p>
-              <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center">
+              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3 text-sm">Follow the model:</p>
+              <div className="bg-blue-100 p-5 border-4 border-black mb-8 text-center">
                  <p className="font-bold text-2xl text-blue-900 leading-tight">"{puzzleData.sentence}"</p>
-                 <p className="text-[12px] text-blue-600 mt-2">({puzzleData.translation})</p>
+                 <p className="text-[12px] text-blue-600 mt-2 font-mono">({puzzleData.translation})</p>
               </div>
               
               <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start">
                 {state.selectedWords.map((w, i) => (
-                  <span key={i} className="bg-white border-2 border-black px-4 py-3 text-2xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
+                  <span key={i} className="bg-white border-2 border-black px-4 py-2 text-xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
                 ))}
               </div>
 
@@ -227,20 +225,21 @@ export default function App() {
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(puzzleData.sentence.split(' ')) }));
                       playTTS("Try again!");
                     }
-                  }} className="mario-button text-[18px] py-6 hover:bg-yellow-100">{w}</button>
+                  }} className="mario-button text-[16px] py-5 hover:bg-yellow-100">{w}</button>
                 ))}
               </div>
             </div>
           ) : (
             <>
-              <div className="flex flex-col items-center gap-10 mb-12">
+              <div className="flex flex-col items-center gap-8 mb-10">
                 <VoxelFelipe isDancing={state.showExplanation} />
-                <div className="bg-sky-50 border-4 border-black p-8 w-full text-black font-bold text-3xl leading-tight text-center rounded-2xl shadow-inner">
+                <div className="bg-sky-50 border-4 border-black p-6 w-full text-black font-bold text-2xl leading-tight text-center rounded-2xl shadow-inner">
                   {state.showExplanation ? currentQ.text.replace('________', currentQ.correctAnswer) : currentQ.text}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
+              {/* OPCIONES EN FILAS DE 2 (Grid cols 2) */}
+              <div className="grid grid-cols-2 gap-4">
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={() => {
                     if (o === currentQ.correctAnswer) {
@@ -252,17 +251,17 @@ export default function App() {
                        playTTS("Try another!");
                     }
                   }} 
-                    className={`mario-button text-[20px] py-10 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
+                    className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
                     {o}
                   </button>
                 ))}
               </div>
 
               {state.showExplanation && (
-                <div className="mt-10 p-8 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[8px_8px_0px_#000]">
-                  <p className="text-[16px] font-bold mb-6 uppercase italic">"{currentQ.translation}"</p>
+                <div className="mt-10 p-6 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[8px_8px_0px_#000]">
+                  <p className="text-[14px] font-bold mb-6 uppercase italic">"{currentQ.translation}"</p>
                   <button onClick={() => setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }))} 
-                    className="mario-button w-full text-[18px] py-6 bg-blue-600 text-white uppercase font-black">CONTINUE »</button>
+                    className="mario-button w-full text-[16px] py-5 bg-blue-600 text-white uppercase font-black">CONTINUE »</button>
                 </div>
               )}
             </>
