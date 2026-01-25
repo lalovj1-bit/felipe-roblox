@@ -21,18 +21,19 @@ async function decodeAudioData(
   sampleRate: number,
   numChannels: number,
 ): Promise<AudioBuffer> {
-  // Aseguramos que usamos el buffer correcto con offset por seguridad
-  const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
+  // Aseguramos que el buffer sea un múltiplo de 2 (16 bits) antes de crear el Int16Array
+  const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const dataInt16 = new Int16Array(buffer);
   const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+  const audioBuffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
   for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
+    const channelData = audioBuffer.getChannelData(channel);
     for (let i = 0; i < frameCount; i++) {
       channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
     }
   }
-  return buffer;
+  return audioBuffer;
 }
 
 const missions = [
@@ -46,27 +47,31 @@ const missions = [
 
 // --- MOTOR DE AUDIO 8-BIT ---
 const play8BitNote = (ctx: AudioContext, freq: number, duration: number, type: OscillatorType = 'square', volume = 0.06) => {
-  if (freq === 0) return;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, ctx.currentTime);
-  gain.gain.setValueAtTime(volume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + duration);
+  if (freq === 0 || !ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.error("Oscillator Error:", e);
+  }
 };
 
-// Efecto Moneda de Mario
 const playMarioCoin = (ctx: AudioContext) => {
-  play8BitNote(ctx, 987.77, 0.1, 'square', 0.1); // B5
-  setTimeout(() => play8BitNote(ctx, 1318.51, 0.4, 'square', 0.1), 100); // E6
+  if (!ctx) return;
+  play8BitNote(ctx, 987.77, 0.1, 'square', 0.1); 
+  setTimeout(() => play8BitNote(ctx, 1318.51, 0.4, 'square', 0.1), 100);
 };
 
-// Melodía de Intro
 const playIntroTheme = (ctx: AudioContext) => {
+  if (!ctx) return;
   const intro = [330, 330, 0, 330, 0, 262, 330, 0, 392, 0, 196];
   intro.forEach((f, i) => setTimeout(() => play8BitNote(ctx, f, 0.15, 'square', 0.1), i * 120));
 };
@@ -100,7 +105,7 @@ export default function App() {
     screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, hunger: 100,
     isNight: false, feedbackType: 'none', showExplanation: false, stamps: [], postcards: {}, diaries: {},
     isGeneratingPostcard: false, equippedAccessory: 'none', unlockedAccessories: ['none'],
-    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! I'm Felipe! Ready for an adventure?" }], dailyChallenge: ''
+    scrambleWords: [], selectedWords: [], chatHistory: [{ role: 'felipe', text: "Hello! Ready for an adventure?" }], dailyChallenge: ''
   });
 
   const [inputMessage, setInputMessage] = useState('');
@@ -115,24 +120,29 @@ export default function App() {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const initAudio = async () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      return audioContextRef.current;
+    } catch (e) {
+      console.error("Failed to init audio context:", e);
+      return null;
     }
-    if (audioContextRef.current.state === 'suspended') {
-      await audioContextRef.current.resume();
-    }
-    return audioContextRef.current;
   };
 
   const startBGM = async () => {
     const ctx = await initAudio();
-    if (bgmIntervalRef.current) return;
+    if (!ctx || bgmIntervalRef.current) return;
 
     const melody = [261, 329, 392, 523, 392, 329, 261, 329, 392, 523, 392, 329, 349, 440, 523, 698, 523, 440, 293, 392, 493, 587, 493, 392];
     let noteIdx = 0;
 
     bgmIntervalRef.current = window.setInterval(() => {
-      if (!isMuted && state.screen !== 'intro' && audioContextRef.current) {
+      if (!isMuted && state.screen !== 'intro' && audioContextRef.current && audioContextRef.current.state === 'running') {
         play8BitNote(audioContextRef.current, melody[noteIdx], 0.25, 'triangle', 0.02);
       }
       noteIdx = (noteIdx + 1) % melody.length;
@@ -149,8 +159,9 @@ export default function App() {
     if (!text) return;
     try {
       const ctx = await initAudio();
-      setIsLoadingAudio(true);
+      if (!ctx) return;
       
+      setIsLoadingAudio(true);
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -175,7 +186,7 @@ export default function App() {
         setIsLoadingAudio(false);
       }
     } catch (error) { 
-      console.error("TTS Error:", error);
+      console.error("TTS System Error:", error);
       setIsLoadingAudio(false);
       setIsFelipeSpeaking(false);
     }
@@ -200,7 +211,7 @@ export default function App() {
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, felipeMsg] }));
       playTTS(felipeMsg.text);
     } catch (e) {
-      const errorMsg: ChatMessage = { role: 'felipe', text: "My brain is tired!" };
+      const errorMsg: ChatMessage = { role: 'felipe', text: "Connection error!" };
       setState(s => ({ ...s, chatHistory: [...s.chatHistory, errorMsg] }));
     } finally {
       setIsTyping(false);
@@ -228,10 +239,9 @@ export default function App() {
       } else if (currentQ) {
         setShuffledOptions(shuffle(currentQ.options));
         if (isAudioLevel) {
-          // Un pequeño delay para asegurar que el componente cargó y el contexto de audio esté listo
           const timer = setTimeout(() => {
             playTTS(currentQ.text);
-          }, 500);
+          }, 600);
           return () => clearTimeout(timer);
         }
       }
@@ -240,9 +250,7 @@ export default function App() {
 
   const Header = () => (
     <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/50 border-4 border-black">
-      <button onClick={() => { 
-        setState(s => ({ ...s, screen: 'intro' }));
-      }} className="mario-button text-[12px] bg-red-600 text-white p-2 px-6">EXIT</button>
+      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button text-[12px] bg-red-600 text-white p-2 px-6">EXIT</button>
       <div className="flex items-center gap-4">
         <button onClick={() => setIsMuted(!isMuted)} className="text-2xl hover:scale-110 transition-transform">
           {isMuted ? '🔇' : '🔊'}
@@ -265,11 +273,13 @@ export default function App() {
         <div className="space-y-4">
           <button onClick={async () => { 
             const ctx = await initAudio();
-            playIntroTheme(ctx);
-            startBGM();
-            setState(s => ({ ...s, screen: 'mission_select' })); 
+            if (ctx) {
+              playIntroTheme(ctx);
+              startBGM();
+              setState(s => ({ ...s, screen: 'mission_select' })); 
+            }
           }} className="mario-button w-full text-[18px] py-6 bg-green-500 text-white uppercase font-black">START GAME</button>
-          <button onClick={() => { startBGM(); setState(s => ({ ...s, screen: 'chat' })); }} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">TALK TO FELIPE</button>
+          <button onClick={async () => { await initAudio(); startBGM(); setState(s => ({ ...s, screen: 'chat' })); }} className="mario-button w-full text-[14px] py-4 bg-sky-500 text-white uppercase font-black">TALK TO FELIPE</button>
           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[12px] py-3 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
         </div>
       </div>
@@ -312,7 +322,7 @@ export default function App() {
             <button key={m.id} onClick={async () => {
               await initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
-              playTTS(`Entering ${m.title}`);
+              playTTS(`World ${m.id}: ${m.title}`);
             }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-yellow-50 border-yellow-500' : 'bg-white'}`}>
               <span className="text-6xl">{m.icon}</span>
               <span className="text-[14px] font-bold uppercase">{m.title}</span>
@@ -348,20 +358,20 @@ export default function App() {
                    disabled={isLoadingAudio || isFelipeSpeaking}
                    className={`mario-button ${isLoadingAudio ? 'bg-gray-300' : 'bg-yellow-400'} p-4 rounded-full transition-all active:scale-90`}
                  >
-                    <span className="text-3xl">🔊 REPEAT</span>
+                    <span className="text-3xl">🔊 REPEAT SOUND</span>
                  </button>
-                 <p className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mt-2">Listen to the word!</p>
+                 <p className="text-[14px] font-bold text-gray-400 uppercase tracking-widest mt-2">Listen carefully!</p>
               </div>
 
               <div className="grid grid-cols-2 gap-6 w-full flex-1">
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={async () => {
                     const ctx = await initAudio();
-                    if (o === currentQ.correctAnswer) {
+                    if (ctx && o === currentQ.correctAnswer) {
                        playMarioCoin(ctx);
                        setState(s => ({ ...s, score: s.score + 15, showExplanation: true, userAnswer: o }));
-                       playTTS(currentQ.explanation); 
-                    } else {
+                       playTTS(`Correct! ${currentQ.text}`); 
+                    } else if (ctx) {
                        play8BitNote(ctx, 110, 0.2, 'sawtooth', 0.1);
                     }
                   }} className={`mario-button flex items-center justify-center py-10 text-7xl transition-all ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-300 border-green-800 scale-105' : 'bg-gray-50 hover:bg-white'}`}>
@@ -377,7 +387,7 @@ export default function App() {
                   <button onClick={() => {
                     if (state.currentQuestionIndex === 9) setState(s => ({ ...s, screen: 'game_over', stamps: [...new Set([...s.stamps, s.activeMission])] }));
                     else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }));
-                  }} className="mario-button w-full text-[14px] py-4 bg-blue-600 text-white uppercase font-black">NEXT »</button>
+                  }} className="mario-button w-full text-[14px] py-4 bg-blue-600 text-white uppercase font-black">NEXT CHALLENGE »</button>
                 </div>
               )}
             </div>
@@ -399,7 +409,7 @@ export default function App() {
                     if (w === correctWords[state.selectedWords.length]) {
                       const newSelected = [...state.selectedWords, w];
                       setState(s => ({ ...s, selectedWords: newSelected, scrambleWords: s.scrambleWords.filter((_, idx) => idx !== i) }));
-                      if (newSelected.length === correctWords.length) {
+                      if (ctx && newSelected.length === correctWords.length) {
                         playMarioCoin(ctx);
                         setState(s => ({ ...s, score: s.score + 50 }));
                         playTTS(correctWords.join(' ')); 
@@ -408,7 +418,7 @@ export default function App() {
                            else setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
                         }, 2500);
                       }
-                    } else {
+                    } else if (ctx) {
                       play8BitNote(ctx, 110, 0.4, 'sawtooth', 0.1);
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(correctWords) }));
                     }
@@ -428,11 +438,11 @@ export default function App() {
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={async () => {
                     const ctx = await initAudio();
-                    if (o === currentQ.correctAnswer) {
+                    if (ctx && o === currentQ.correctAnswer) {
                        playMarioCoin(ctx);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
                        playTTS(currentQ.text.replace('________', currentQ.correctAnswer)); 
-                    } else {
+                    } else if (ctx) {
                        play8BitNote(ctx, 110, 0.2, 'sawtooth', 0.1);
                     }
                   }} className={`mario-button text-[16px] py-8 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 text-white' : 'bg-white'}`}>
