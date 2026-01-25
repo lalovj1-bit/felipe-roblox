@@ -38,7 +38,7 @@ const playIntroTheme = (ctx: AudioContext) => {
 const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
 
 const VoxelFelipe = ({ isDancing }: { isDancing?: boolean }) => (
-  <div className={`relative w-48 h-48 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
+  <div className={`relative w-40 h-40 flex items-center justify-center transition-all ${isDancing ? 'animate-bounce' : 'animate-felipe'}`}>
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
       <rect x="30" y="45" width="45" height="40" fill="#00a800" stroke="#000" strokeWidth="4" />
       <rect x="35" y="15" width="35" height="35" fill="#00ff00" stroke="#000" strokeWidth="4" />
@@ -100,19 +100,21 @@ export default function App() {
     QUESTIONS.filter(q => q.mission === state.activeMission), 
   [state.activeMission]);
 
-  // Lógica para determinar si el nivel actual es un puzzle (Nivel 5 y Nivel 10)
+  // Lógica de Puzzle: Nivel 5 (index 4) y Nivel 10 (index 9)
   const isPuzzleLevel = (state.currentQuestionIndex + 1) % 5 === 0;
 
   useEffect(() => {
     if (state.screen === 'playing') {
       if (isPuzzleLevel) {
-        // Encontrar la pregunta de puzzle correspondiente
-        // Misión 1: Puzzles 0 y 1, Misión 2: Puzzles 2 y 3, etc.
         const puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
         const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
         setState(s => ({ ...s, scrambleWords: shuffle(puzzleData.sentence.split(' ')), selectedWords: [] }));
       } else {
-        const currentQ = missionQs[state.currentQuestionIndex];
+        // Ajustar el índice para ignorar los puzzles en la lista de preguntas normales
+        let qIdx = state.currentQuestionIndex;
+        if (qIdx > 4) qIdx -= 1; // Si pasó el primer puzzle, retrocede 1 en la lista QUESTIONS
+        
+        const currentQ = missionQs[qIdx];
         if (currentQ) {
           setShuffledOptions(shuffle(currentQ.options));
         }
@@ -122,26 +124,26 @@ export default function App() {
 
   if (state.screen === 'intro') return (
     <div className="game-container justify-center bg-[#5c94fc]" onClick={() => { initAudio(); playIntroTheme(audioContextRef.current!); }}>
-      <div className="mario-panel p-12 max-w-[540px] w-full text-center">
-        <h1 className="mc-logo text-3xl text-black mb-6">SUPER FELIPE Y GUILLE</h1>
-        <div className="bg-yellow-400 border-4 border-black inline-block px-10 py-4 mb-12">
-          <h2 className="text-[18px] font-bold text-black uppercase">Adventure XL Edition</h2>
+      <div className="mario-panel p-10 max-w-[480px] w-full text-center">
+        <h1 className="mc-logo text-2xl text-black mb-4">SUPER FELIPE Y GUILLE</h1>
+        <div className="bg-yellow-400 border-4 border-black inline-block px-8 py-3 mb-8">
+          <h2 className="text-[16px] font-bold text-black uppercase">Adventure XL Edition</h2>
         </div>
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center mb-8">
           <VoxelFelipe />
         </div>
-        <div className="space-y-8">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[20px] py-10 bg-green-500 text-white uppercase font-black">START GAME</button>
-          <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[16px] py-6 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
+        <div className="space-y-6">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full text-[18px] py-8 bg-green-500 text-white uppercase font-black">START GAME</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mario-button w-full text-[14px] py-5 bg-yellow-400 text-black uppercase font-black">PASSPORT</button>
         </div>
       </div>
     </div>
   );
 
   if (state.screen === 'mission_select') return (
-    <div className="game-container p-12 bg-sky-400">
-      <h2 className="mc-logo text-3xl mb-12 text-black text-center">SELECT WORLD</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full max-w-[560px]">
+    <div className="game-container p-8 bg-sky-400">
+      <h2 className="mc-logo text-2xl mb-10 text-black text-center">SELECT WORLD</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-[500px]">
         {missions.map(m => {
           const done = state.stamps.includes(m.id);
           return (
@@ -149,60 +151,53 @@ export default function App() {
               initAudio();
               setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, showExplanation: false }));
               playTTS(`World ${m.id}`);
-            }} className={`mario-panel p-10 flex flex-col items-center gap-6 transition-transform active:scale-95 ${done ? 'bg-green-100' : 'bg-white'}`}>
-              <span className="text-7xl">{m.icon}</span>
-              <span className="text-[16px] font-bold uppercase">{m.title}</span>
-              {done && <span className="text-green-600 text-[16px] font-black">CLEARED!</span>}
+            }} className={`mario-panel p-8 flex flex-col items-center gap-4 transition-transform active:scale-95 ${done ? 'bg-green-100' : 'bg-white'}`}>
+              <span className="text-6xl">{m.icon}</span>
+              <span className="text-[14px] font-bold uppercase">{m.title}</span>
+              {done && <span className="text-green-600 text-[14px] font-black">CLEARED!</span>}
             </button>
           );
         })}
       </div>
-      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button mt-16 bg-red-600 text-white text-[18px] px-20">EXIT</button>
+      <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button mt-12 bg-red-600 text-white text-[16px] px-16">EXIT</button>
     </div>
   );
 
   if (state.screen === 'playing') {
-    const currentQ = missionQs[state.currentQuestionIndex];
+    let qIdxForNormal = state.currentQuestionIndex;
+    if (qIdxForNormal > 4) qIdxForNormal -= 1;
+    
+    const currentQ = missionQs[qIdxForNormal];
     const puzzleIdx = (state.activeMission - 1) * 2 + (state.currentQuestionIndex === 4 ? 0 : 1);
     const puzzleData = SCRAMBLE_QUESTIONS[puzzleIdx] || SCRAMBLE_QUESTIONS[0];
 
-    // Protección contra errores de carga
-    if (!isPuzzleLevel && !currentQ) {
-      return (
-        <div className="game-container justify-center bg-black text-white p-10 text-center">
-          <h2 className="text-3xl mb-6">LEVEL ERROR</h2>
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button mt-10 bg-white">RETRY</button>
-        </div>
-      );
-    }
-
     return (
-      <div className="game-container p-6 bg-emerald-600">
-        <header className="w-full max-w-[560px] flex justify-between items-center p-6 mb-10 bg-black/50 border-4 border-black">
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button text-[14px] bg-red-600 text-white p-4">QUIT</button>
-          <div className="flex gap-12 text-[18px] font-bold text-white">
+      <div className="game-container p-4 bg-emerald-600">
+        <header className="w-full max-w-[500px] flex justify-between items-center p-5 mb-8 bg-black/50 border-4 border-black">
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button text-[12px] bg-red-600 text-white p-3">QUIT</button>
+          <div className="flex gap-10 text-[16px] font-bold text-white">
              <span>W {state.activeMission}-{state.currentQuestionIndex + 1}</span>
              <span className="text-yellow-400">XP {state.score}</span>
           </div>
         </header>
 
-        <main className="mario-panel w-full max-w-[560px] p-12 bg-white flex flex-col shadow-2xl">
+        <main className="mario-panel w-full max-w-[500px] p-10 bg-white flex flex-col shadow-2xl">
           {isPuzzleLevel ? (
             <div className="flex flex-col">
-              <div className="bg-orange-500 text-white text-[18px] p-6 text-center font-bold mb-10 border-4 border-black shadow-[8px_8px_0px_#000]">SENTENCE PUZZLE: ORDENA!</div>
-              <p className="text-center font-bold text-[16px] text-gray-400 uppercase mb-4 italic">Model to follow:</p>
-              <div className="bg-blue-100 p-8 border-4 border-black mb-10 text-center">
-                 <p className="font-bold text-3xl text-blue-900 leading-tight">"{puzzleData.sentence}"</p>
-                 <p className="text-[14px] text-blue-600 mt-2">({puzzleData.translation})</p>
+              <div className="bg-orange-500 text-white text-[16px] p-5 text-center font-bold mb-8 border-4 border-black shadow-[6px_6px_0px_#000]">PUZZLE TIME!</div>
+              <p className="text-center font-bold text-[14px] text-gray-400 uppercase mb-3">Goal Sentence:</p>
+              <div className="bg-blue-100 p-6 border-4 border-black mb-8 text-center">
+                 <p className="font-bold text-2xl text-blue-900 leading-tight">"{puzzleData.sentence}"</p>
+                 <p className="text-[12px] text-blue-600 mt-2">({puzzleData.translation})</p>
               </div>
               
-              <div className="bg-yellow-50 p-8 min-h-[160px] border-4 border-black border-dashed mb-12 flex flex-wrap gap-4 justify-center content-start">
+              <div className="bg-yellow-50 p-6 min-h-[120px] border-4 border-black border-dashed mb-10 flex flex-wrap gap-3 justify-center content-start">
                 {state.selectedWords.map((w, i) => (
-                  <span key={i} className="bg-white border-2 border-black px-6 py-4 text-3xl font-bold shadow-[4px_4px_0px_#000] animate-bounce">{w}</span>
+                  <span key={i} className="bg-white border-2 border-black px-4 py-3 text-2xl font-bold shadow-[3px_3px_0px_#000] animate-bounce">{w}</span>
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-6 mb-10">
+              <div className="grid grid-cols-2 gap-4 mb-8">
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} onClick={() => {
                     initAudio();
@@ -217,7 +212,7 @@ export default function App() {
                       if (newSelected.length === correctWords.length) {
                         if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                         setState(s => ({ ...s, score: s.score + 50 }));
-                        playTTS("Perfect! Let's go!");
+                        playTTS("Excellent!");
                         
                         setTimeout(() => {
                            if (state.currentQuestionIndex === 9) {
@@ -225,50 +220,49 @@ export default function App() {
                            } else {
                              setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1 }));
                            }
-                        }, 2000);
+                        }, 1800);
                       }
                     } else {
-                      // Fallo: Reset
                       if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.4, 'sawtooth');
                       setState(s => ({ ...s, selectedWords: [], scrambleWords: shuffle(puzzleData.sentence.split(' ')) }));
-                      playTTS("Oops! Try again!");
+                      playTTS("Try again!");
                     }
-                  }} className="mario-button text-[20px] py-8 hover:bg-yellow-100">{w}</button>
+                  }} className="mario-button text-[18px] py-6 hover:bg-yellow-100">{w}</button>
                 ))}
               </div>
             </div>
           ) : (
             <>
-              <div className="flex flex-col items-center gap-12 mb-16">
+              <div className="flex flex-col items-center gap-10 mb-12">
                 <VoxelFelipe isDancing={state.showExplanation} />
-                <div className="bg-sky-50 border-4 border-black p-10 w-full text-black font-bold text-4xl leading-tight text-center rounded-2xl shadow-inner">
+                <div className="bg-sky-50 border-4 border-black p-8 w-full text-black font-bold text-3xl leading-tight text-center rounded-2xl shadow-inner">
                   {state.showExplanation ? currentQ.text.replace('________', currentQ.correctAnswer) : currentQ.text}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-8">
+              <div className="grid grid-cols-1 gap-6">
                 {shuffledOptions.map((o, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={() => {
                     if (o === currentQ.correctAnswer) {
                        if (audioContextRef.current) playCorrectSound(audioContextRef.current);
                        setState(s => ({ ...s, score: s.score + 10, showExplanation: true, userAnswer: o }));
-                       playTTS(`Yes! ${o}`);
+                       playTTS(`Good! ${o}`);
                     } else {
                        if (audioContextRef.current) play8BitNote(audioContextRef.current, 110, 0.2, 'sawtooth');
-                       playTTS("No!");
+                       playTTS("Try another!");
                     }
                   }} 
-                    className={`mario-button text-[24px] py-12 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
+                    className={`mario-button text-[20px] py-10 ${state.showExplanation && o === currentQ.correctAnswer ? 'bg-green-400 border-green-800 text-white' : 'bg-white'}`}>
                     {o}
                   </button>
                 ))}
               </div>
 
               {state.showExplanation && (
-                <div className="mt-12 p-10 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[10px_10px_0px_#000]">
-                  <p className="text-[18px] font-bold mb-8 uppercase italic">"{currentQ.translation}"</p>
+                <div className="mt-10 p-8 bg-yellow-400 border-4 border-black text-center rounded-2xl animate-bounce shadow-[8px_8px_0px_#000]">
+                  <p className="text-[16px] font-bold mb-6 uppercase italic">"{currentQ.translation}"</p>
                   <button onClick={() => setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }))} 
-                    className="mario-button w-full text-[20px] py-8 bg-blue-600 text-white uppercase font-black">CONTINUE »</button>
+                    className="mario-button w-full text-[18px] py-6 bg-blue-600 text-white uppercase font-black">CONTINUE »</button>
                 </div>
               )}
             </>
@@ -280,39 +274,39 @@ export default function App() {
 
   if (state.screen === 'game_over') return (
     <div className="game-container justify-center bg-black p-10">
-      <div className="mario-panel p-20 text-center max-w-[540px] w-full bg-white border-8 border-black">
-        <h2 className="mc-logo text-emerald-600 mb-12 text-4xl animate-bounce">WORLD CLEAR!</h2>
+      <div className="mario-panel p-16 text-center max-w-[480px] w-full bg-white border-8 border-black">
+        <h2 className="mc-logo text-emerald-600 mb-8 text-3xl animate-bounce">WORLD CLEAR!</h2>
         <VoxelFelipe isDancing={true} />
-        <div className="bg-yellow-400 p-12 border-4 border-black my-16 shadow-[12px_12px_0px_#000]">
-           <p className="text-[18px] uppercase text-black mb-6 font-bold">TOTAL HERO XP</p>
-           <p className="font-bold text-8xl text-black font-mono">{state.score}</p>
+        <div className="bg-yellow-400 p-10 border-4 border-black my-12 shadow-[10px_10px_0px_#000]">
+           <p className="text-[16px] uppercase text-black mb-4 font-bold">TOTAL XP</p>
+           <p className="font-bold text-7xl text-black font-mono">{state.score}</p>
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-12 text-[26px] bg-orange-600 text-white font-black">MAP SELECT</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full py-10 text-[24px] bg-orange-600 text-white font-black">MAP SELECT</button>
       </div>
     </div>
   );
 
   if (state.screen === 'passport') return (
-    <div className="game-container p-12 bg-orange-100">
-      <h2 className="mc-logo text-3xl mb-16 text-black">HERO PASSPORT</h2>
-      <div className="mario-panel w-full max-w-[560px] p-12 bg-white shadow-[20px_20px_0px_#8b4513]">
-        <div className="flex items-center gap-12 mb-16 border-b-8 border-black pb-12">
+    <div className="game-container p-10 bg-orange-100">
+      <h2 className="mc-logo text-2xl mb-12 text-black">PASSPORT</h2>
+      <div className="mario-panel w-full max-w-[500px] p-10 bg-white shadow-[15px_15px_0px_#8b4513]">
+        <div className="flex items-center gap-10 mb-12 border-b-8 border-black pb-10">
           <VoxelFelipe />
           <div>
-             <p className="text-[16px] text-gray-400 font-bold uppercase">Player</p>
-             <p className="text-4xl font-bold uppercase">FELIPE & GUILLE</p>
-             <p className="text-3xl font-bold text-red-600 mt-4">XP: {state.score}</p>
+             <p className="text-[14px] text-gray-400 font-bold uppercase">HERO</p>
+             <p className="text-3xl font-bold uppercase">FELIPE & GUILLE</p>
+             <p className="text-2xl font-bold text-red-600 mt-2">XP: {state.score}</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-8">
+        <div className="grid grid-cols-3 gap-6">
           {missions.map(m => (
-            <div key={m.id} className={`p-8 border-4 border-black flex flex-col items-center transition-all ${state.stamps.includes(m.id) ? 'bg-yellow-200 scale-110 shadow-xl' : 'bg-gray-100 opacity-20 grayscale'}`}>
-              <span className="text-7xl">{m.icon}</span>
-              <span className="text-[14px] font-black uppercase mt-6">W-{m.id}</span>
+            <div key={m.id} className={`p-6 border-4 border-black flex flex-col items-center transition-all ${state.stamps.includes(m.id) ? 'bg-yellow-200 scale-110' : 'bg-gray-100 opacity-20 grayscale'}`}>
+              <span className="text-6xl">{m.icon}</span>
+              <span className="text-[12px] font-black uppercase mt-4">W-{m.id}</span>
             </div>
           ))}
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button w-full mt-20 bg-blue-600 text-white py-10 text-[20px] font-black">BACK</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mario-button w-full mt-16 bg-blue-600 text-white py-8 text-[18px] font-black">BACK</button>
       </div>
     </div>
   );
