@@ -64,18 +64,51 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
 
 const VoxelFelipe = ({ isActive, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]">
-      {/* Cabeza blocky */}
-      <rect x="35" y="15" width="40" height="35" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#000" strokeWidth="3" />
-      {/* Ojos pixel */}
-      <rect x="42" y="25" width="6" height="6" fill="#000" />
-      <rect x="62" y="25" width="6" height="6" fill="#000" />
-      {mood === "happy" && <rect x="45" y="40" width="20" height="4" fill="#000" />}
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_rgba(0,0,0,0.6)]">
+      {/* CUERPO (Tronco) - Camiseta Blanca con logo azul */}
+      <rect x="30" y="45" width="40" height="35" fill="#FFFFFF" stroke="#000" strokeWidth="2" />
+      {/* Diseño de la camiseta (Cuadrados azules) */}
+      <rect x="40" y="55" width="20" height="18" fill="#0c4a6e" />
+      <rect x="45" y="60" width="10" height="8" fill="#FFFFFF" />
+      
+      {/* BRAZOS (Skin color con borde de manga azul) */}
+      <rect x="22" y="45" width="8" height="25" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
+      <rect x="22" y="45" width="8" height="4" fill="#0c4a6e" />
+      
+      <rect x="70" y="45" width="8" height="25" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
+      <rect x="70" y="45" width="8" height="4" fill="#0c4a6e" />
+
+      {/* PIERNAS (Pantalones negros) */}
+      <rect x="30" y="80" width="18" height="15" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
+      <rect x="52" y="80" width="18" height="15" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
+      
+      {/* ZAPATOS (Azules) */}
+      <rect x="30" y="92" width="18" height="6" fill="#0c4a6e" />
+      <rect x="52" y="92" width="18" height="6" fill="#0c4a6e" />
+
+      {/* CABEZA (Skin color) */}
+      <rect x="35" y="15" width="30" height="30" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
+      
+      {/* PELO (Negro blocky) */}
+      <rect x="33" y="10" width="34" height="15" fill="#111" />
+      <rect x="33" y="15" width="6" height="15" fill="#111" />
+      <rect x="61" y="15" width="6" height="15" fill="#111" />
+      {/* Detalles de flequillo pixelado */}
+      <rect x="35" y="20" width="6" height="4" fill="#111" />
+      <rect x="59" y="20" width="6" height="4" fill="#111" />
+
+      {/* OJOS (Azul oscuro / Negro) */}
+      <rect x="40" y="30" width="4" height="6" fill="#0c4a6e" />
+      <rect x="56" y="30" width="4" height="6" fill="#0c4a6e" />
+      
+      {/* BOCA (Simple línea Minecraft) */}
+      {mood === "happy" ? (
+        <rect x="44" y="40" width="12" height="2" fill="#000" />
+      ) : (
+        <rect x="46" y="40" width="8" height="2" fill="#000" opacity="0.5" />
+      )}
+
       <AccessoryLayer item={accessory} />
-      {/* Cuerpo blocky */}
-      <rect x="30" y="50" width="45" height="40" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#000" strokeWidth="3" />
-      {/* Cola pixel */}
-      <rect x="15" y="65" width="15" height="10" fill="#fb923c" stroke="#000" strokeWidth="2" />
     </svg>
   </div>
 );
@@ -175,7 +208,6 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
-    // El audio bloquea botones hasta que Felipe termina
     playTTS(q.sentence);
   };
 
@@ -217,7 +249,7 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A blocky 3D voxel art postcard of a dinosaur at ${missionTitle}. Minecraft style.` }] },
+        contents: { parts: [{ text: `A blocky 3D voxel art postcard of a Minecraft character at ${missionTitle}. High resolution, bright colors.` }] },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
       const textRes = await ai.models.generateContent({
@@ -242,7 +274,6 @@ export default function App() {
     }
   };
 
-  // Lectura de diálogos iniciales
   useEffect(() => {
     if (state.screen === 'playing' && state.activeMission < 5) {
       const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
@@ -256,7 +287,7 @@ export default function App() {
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-mc-green/20">
         <div className="mc-panel p-12 max-w-lg w-full text-center">
           <h1 className="mc-logo mb-12">FELIPE<br/>QUEST</h1>
-          <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-48 h-48" accessory={state.equippedAccessory} /></div>
+          <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-56 h-56" accessory={state.equippedAccessory} /></div>
           <div className="flex flex-col gap-6">
             <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">PLAY GAME</button>
             <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY ALBUM</button>
@@ -316,7 +347,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* FRASE QUE SE ESTÁ CONSTRUYENDO - VISIBILIDAD MÁXIMA */}
             <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
               {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe first...</p>}
               {state.selectedWords.map((w, i) => (
@@ -326,7 +356,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* BOTONES DE OPCIONES */}
             <div className="flex flex-wrap gap-4 justify-center mb-12">
               {state.scrambleWords.map((w, i) => (
                 <button key={i} disabled={isAudioLoading} onClick={() => handleWordClick(w, i)} 
@@ -437,7 +466,7 @@ export default function App() {
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
                   className={`w-24 h-24 mc-panel flex items-center justify-center text-5xl transition-all ${state.equippedAccessory === acc ? 'bg-[#55ff55] scale-110' : 'bg-[#e0e0e0] opacity-50'}`}>
-                  {{ none: "🦖", sunglasses: "🕶️", safari_hat: "🤠", pilot_headset: "🎧", party_ears: "🐭", camera: "📷" }[acc]}
+                  {{ none: "👤", sunglasses: "🕶️", safari_hat: "🤠", pilot_headset: "🎧", party_ears: "🐭", camera: "📷" }[acc]}
                 </button>
               ))}
             </div>
