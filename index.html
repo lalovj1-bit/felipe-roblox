@@ -9,62 +9,70 @@
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
-            --mc-grey: #e0e0e0;
-            --mc-dark-grey: #707070;
-            --mc-light-grey: #ffffff;
-            --mc-border: #000000;
+            --mario-blue: #5c94fc;
+            --mario-red: #e4000f;
+            --mario-green: #00a800;
+            --mario-yellow: #f8d800;
+            --pixel-border: #000000;
         }
         body {
             font-family: 'VT323', monospace;
-            background-color: #4a80ff;
+            background-color: var(--mario-blue);
             color: #ffffff;
-            min-height: 100vh;
             margin: 0;
             overflow: hidden;
             image-rendering: pixelated;
             user-select: none;
+            touch-action: manipulation;
         }
         
         .mc-logo {
             font-family: 'Press Start 2P', cursive;
             text-transform: uppercase;
             text-shadow: 2px 2px 0px #000;
+            line-height: 1.2;
         }
 
-        .mc-button {
-            background-color: var(--mc-grey);
-            border: 3px solid var(--mc-border);
-            border-top-color: var(--mc-light-grey);
-            border-left-color: var(--mc-light-grey);
-            border-right-color: var(--mc-dark-grey);
-            border-bottom-color: var(--mc-dark-grey);
-            padding: 8px 12px;
+        .mario-button {
+            background-color: #f8f8f8;
+            border: 3px solid #000;
+            box-shadow: 4px 4px 0px #000;
             color: #000;
             font-family: 'Press Start 2P', cursive;
-            transition: all 0.1s;
+            transition: all 0.05s;
             cursor: pointer;
-            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.1);
+            padding: 10px;
         }
 
-        .mc-button:active {
-            transform: translateY(2px);
-            border-top-color: var(--mc-dark-grey);
-            border-left-color: var(--mc-dark-grey);
-            border-right-color: var(--mc-light-grey);
-            border-bottom-color: var(--mc-light-grey);
+        .mario-button:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px #000;
         }
 
-        .mc-panel {
-            background-color: var(--mc-grey);
-            border: 4px solid var(--mc-border);
-            border-top-color: var(--mc-light-grey);
-            border-left-color: var(--mc-light-grey);
-            border-right-color: var(--mc-dark-grey);
-            border-bottom-color: var(--mc-dark-grey);
+        .mario-panel {
+            background-color: #f8f8f8;
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0px rgba(0,0,0,0.5);
             color: #000;
         }
 
-        /* Prevent long press context menu on mobile */
+        /* Estilo de la oración en construcción */
+        .word-slot {
+            min-width: 40px;
+            height: 35px;
+            border-bottom: 3px solid #000;
+            display: inline-block;
+            margin: 0 4px;
+            vertical-align: bottom;
+        }
+
+        .mario-card {
+            background: white;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0px #000;
+        }
+
+        /* Prevent long press context menu */
         * { -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
     </style>
 <script type="importmap">
