@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, SCRAMBLE_QUESTIONS } from './constants';
-import { GameState, Accessory, Question, ScrambleQuestion } from './types';
+import { GameState, Accessory } from './types';
 
 // --- HELPERS PARA AUDIO ---
 function decode(base64: string): Uint8Array {
@@ -113,6 +113,7 @@ export default function App() {
     selectedWords: []
   });
 
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const initAudio = async () => {
@@ -126,8 +127,9 @@ export default function App() {
     return audioContextRef.current;
   };
 
-  const playTTS = async (text: string) => {
+  const playTTS = async (text: string, onEnd?: () => void) => {
     try {
+      setIsAudioLoading(true);
       const ctx = await initAudio();
       if (!ctx) return;
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -145,10 +147,17 @@ export default function App() {
         const source = ctx.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(ctx.destination);
+        source.onended = () => {
+          setIsAudioLoading(false);
+          if (onEnd) onEnd();
+        };
         source.start();
+      } else {
+        setIsAudioLoading(false);
       }
     } catch (e) {
       console.error("TTS Error:", e);
+      setIsAudioLoading(false);
     }
   };
 
@@ -158,18 +167,10 @@ export default function App() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    if (type === 'success') {
-      osc.frequency.setValueAtTime(600, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-    } else {
-      osc.frequency.setValueAtTime(200, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-    }
-    osc.start(); osc.stop(ctx.currentTime + 0.3);
+    osc.frequency.setValueAtTime(type === 'success' ? 600 : 150, ctx.currentTime);
+    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    osc.start(); osc.stop(ctx.currentTime + 0.2);
   };
 
   const missions = [
@@ -185,11 +186,13 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
-    // TTS for the translation to guide the kid
-    playTTS(`Translate: ${q.translation}`);
+    // Bloquear interacción hasta que Felipe termine de leer la frase correcta
+    playTTS(q.sentence);
   };
 
   const handleWordClick = (word: string, index: number) => {
+    if (isAudioLoading) return;
+    playTTS(word); // Pronunciar palabra al elegirla
     setState(s => {
       const newScramble = [...s.scrambleWords];
       newScramble.splice(index, 1);
@@ -198,6 +201,7 @@ export default function App() {
   };
 
   const handleRemoveWord = (word: string, index: number) => {
+    if (isAudioLoading) return;
     setState(s => {
       const newSelected = [...s.selectedWords];
       newSelected.splice(index, 1);
@@ -242,8 +246,7 @@ export default function App() {
       const diaryEntry = textRes.text || "I had a great trip!";
       const accs: Accessory[] = ['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'];
       setState(s => ({ 
-        ...s, 
-        postcards: { ...s.postcards, [missionId]: imageUrl },
+        ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
         diaries: { ...s.diaries, [missionId]: diaryEntry },
         unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accs[missionId-1]])),
         isGeneratingPostcard: false 
@@ -253,7 +256,7 @@ export default function App() {
     }
   };
 
-  // Escuchar pregunta inicial
+  // Lectura automática de diálogos
   useEffect(() => {
     if (state.screen === 'playing' && state.activeMission < 5) {
       const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
@@ -311,29 +314,40 @@ export default function App() {
             <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
             <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
           </header>
-          <main className="w-full max-w-2xl voxel-card p-8 bg-white/95">
+          <main className="w-full max-w-2xl voxel-card p-8 bg-white/95 relative">
+            {isAudioLoading && (
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-sky-900 border-t-transparent animate-spin rounded-full"></div>
+                <span className="mono text-[8px] font-black uppercase text-sky-900">Listening...</span>
+              </div>
+            )}
             <div className="flex justify-center mb-6"><VoxelFelipe isActive={state.showExplanation} mood={state.showExplanation ? "happy" : "thinking"} accessory={state.equippedAccessory} /></div>
             <div className="bg-sky-50 p-6 border-2 border-dashed border-sky-200 mb-8 text-center">
               <p className="text-2xl font-black italic text-sky-700">"{q.translation}"</p>
             </div>
-            <div className="min-h-[120px] bg-white border-4 border-sky-900 p-6 flex flex-wrap gap-2 mb-8 items-center justify-center rounded-xl">
-              {state.selectedWords.length === 0 && <p className="text-gray-300 font-black uppercase">Order the words...</p>}
+            {/* ESPACIO DE CONSTRUCCIÓN - MEJORADA VISIBILIDAD */}
+            <div className="min-h-[140px] bg-sky-100 border-4 border-sky-900 p-6 flex flex-wrap gap-3 mb-8 items-center justify-center rounded-2xl shadow-inner">
+              {state.selectedWords.length === 0 && <p className="text-sky-900/40 font-black uppercase">Felipe says the sentence... Listen!</p>}
               {state.selectedWords.map((w, i) => (
-                <button key={i} onClick={() => handleRemoveWord(w, i)} className="bg-summer-orange text-white px-4 py-2 font-black uppercase text-sm border-2 border-sky-900 shadow-md transform active:scale-95">
+                <button key={i} onClick={() => handleRemoveWord(w, i)} className="bg-summer-orange text-sky-900 px-5 py-3 font-black uppercase text-lg border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
                   {w}
                 </button>
               ))}
             </div>
+            {/* BOTONES DE OPCIONES - DESHABILITADOS DURANTE AUDIO */}
             <div className="flex flex-wrap gap-3 justify-center mb-8">
               {state.scrambleWords.map((w, i) => (
-                <button key={i} onClick={() => handleWordClick(w, i)} className="bg-white text-sky-900 px-5 py-3 font-black uppercase border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                <button key={i} disabled={isAudioLoading} onClick={() => handleWordClick(w, i)} 
+                  className={`bg-white text-sky-900 px-5 py-3 font-black uppercase border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] transition-all
+                    ${isAudioLoading ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:shadow-none hover:translate-x-1 hover:translate-y-1'}
+                  `}>
                   {w}
                 </button>
               ))}
             </div>
             {state.showExplanation ? (
               <div className="bg-tropical-green p-6 border-4 border-sky-900 text-sky-900 animate-in zoom-in">
-                <p className="text-2xl font-black uppercase mb-4 text-center">Well Done! ✨</p>
+                <p className="text-2xl font-black uppercase mb-4 text-center">Excellent! ✨</p>
                 <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
                     const next = state.currentQuestionIndex + 1;
@@ -346,8 +360,9 @@ export default function App() {
                 }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Next Challenge »</button>
               </div>
             ) : (
-              <button disabled={state.scrambleWords.length > 0} onClick={checkScramble} className={`w-full py-6 text-2xl roblox-btn ${state.scrambleWords.length > 0 ? 'opacity-50 grayscale' : ''}`}>
-                CHECK SENTENCE
+              <button disabled={state.scrambleWords.length > 0 || isAudioLoading} onClick={checkScramble} 
+                className={`w-full py-6 text-2xl roblox-btn ${state.scrambleWords.length > 0 || isAudioLoading ? 'opacity-50 grayscale' : ''}`}>
+                CHECK
               </button>
             )}
           </main>
@@ -365,7 +380,7 @@ export default function App() {
           <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
           <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
         </header>
-        <main className="w-full max-w-2xl voxel-card p-8 bg-white">
+        <main className="w-full max-w-2xl voxel-card p-8 bg-white relative">
           <div className="flex justify-center mb-8"><VoxelFelipe isActive={state.showExplanation} accessory={state.equippedAccessory} /></div>
           <div className="bg-sky-50 p-8 border-4 border-sky-900 rounded-3xl mb-10 relative shadow-inner">
             <h3 className="text-2xl font-bold text-sky-900 text-center leading-relaxed">
@@ -382,11 +397,11 @@ export default function App() {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
-                  playTTS("That's correct!");
+                  playTTS("Correct!");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
-                  playTTS("Oops, try another one.");
+                  playTTS("Oops!");
                 }
               }} disabled={state.showExplanation} className={`p-5 border-4 font-black text-center uppercase text-xl transition-all ${
                   state.userAnswer === opt 
@@ -421,7 +436,7 @@ export default function App() {
         <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
         <div className="voxel-card p-10 w-full max-w-3xl bg-white mb-10">
           <div className="mb-12">
-            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">Wardrobe</h3>
+            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">My Wardrobe</h3>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
@@ -481,3 +496,4 @@ export default function App() {
 
   return null;
 }
+
