@@ -34,59 +34,48 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
     <g transform="translate(0, -5)">
       {item === 'sunglasses' && (
         <g>
-          <rect x="40" y="28" width="12" height="8" fill="#000" rx="1" />
-          <rect x="58" y="28" width="12" height="8" fill="#000" rx="1" />
+          <rect x="40" y="28" width="12" height="8" fill="#000" />
+          <rect x="58" y="28" width="12" height="8" fill="#000" />
           <rect x="52" y="31" width="6" height="2" fill="#000" />
         </g>
       )}
       {item === 'safari_hat' && (
         <g>
-          <rect x="25" y="10" width="60" height="10" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
-          <rect x="35" y="0" width="40" height="12" fill="#a16207" rx="2" stroke="#0c4a6e" strokeWidth="2" />
+          <rect x="25" y="10" width="60" height="10" fill="#a16207" stroke="#000" strokeWidth="2" />
+          <rect x="35" y="0" width="40" height="12" fill="#a16207" stroke="#000" strokeWidth="2" />
         </g>
       )}
       {item === 'pilot_headset' && (
         <g>
-          <rect x="30" y="20" width="50" height="4" fill="#1e293b" rx="2" />
-          <rect x="28" y="25" width="8" height="15" fill="#1e293b" rx="2" />
-          <rect x="74" y="25" width="8" height="15" fill="#1e293b" rx="2" />
-        </g>
-      )}
-      {item === 'party_ears' && (
-        <g>
-          <circle cx="35" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
-          <circle cx="75" cy="15" r="10" fill="#000" stroke="#0c4a6e" strokeWidth="2" />
+          <rect x="30" y="20" width="50" height="4" fill="#1e293b" />
+          <rect x="28" y="25" width="8" height="15" fill="#1e293b" />
+          <rect x="74" y="25" width="8" height="15" fill="#1e293b" />
         </g>
       )}
       {item === 'camera' && (
         <g transform="translate(10, 45)">
-          <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#0c4a6e" strokeWidth="2" />
-          <circle cx="10" cy="7.5" r="4" fill="#94a3b8" stroke="#0c4a6e" strokeWidth="1" />
+          <rect x="0" y="0" width="20" height="15" fill="#475569" stroke="#000" strokeWidth="2" />
+          <circle cx="10" cy="7.5" r="4" fill="#94a3b8" />
         </g>
       )}
     </g>
   );
 };
 
-const VoxelFelipe = ({ isActive, size = "w-48 h-48", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
+const VoxelFelipe = ({ isActive, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
   <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
-    <div className="absolute inset-0 felipe-bg blur-[60px] rounded-full"></div>
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(12,74,110,0.3)]">
-      <rect x="35" y="15" width="40" height="30" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#0c4a6e" strokeWidth="2" />
-      <rect x="30" y="25" width="50" height="15" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#0c4a6e" strokeWidth="2" />
-      {mood === "happy" ? (
-        <g>
-          <path d="M40 30 Q45 25 50 30" stroke="#000" fill="none" strokeWidth="2" />
-          <path d="M60 30 Q65 25 70 30" stroke="#000" fill="none" strokeWidth="2" />
-        </g>
-      ) : (
-        <rect x="65" y="25" width="8" height="8" fill="#000" />
-      )}
+    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_10px_rgba(0,0,0,0.5)]">
+      {/* Cabeza blocky */}
+      <rect x="35" y="15" width="40" height="35" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#000" strokeWidth="3" />
+      {/* Ojos pixel */}
+      <rect x="42" y="25" width="6" height="6" fill="#000" />
+      <rect x="62" y="25" width="6" height="6" fill="#000" />
+      {mood === "happy" && <rect x="45" y="40" width="20" height="4" fill="#000" />}
       <AccessoryLayer item={accessory} />
-      <rect x="25" y="45" width="35" height="40" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#0c4a6e" strokeWidth="2" />
-      <rect x="32" y="10" width="8" height="35" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
-      <rect x="32" y="10" width="25" height="6" fill="#fb923c" stroke="#0c4a6e" strokeWidth="2" />
-      <rect x="34" y="30" width="4" height="6" fill="#f472b6" className={isActive ? "animate-pulse" : ""} />
+      {/* Cuerpo blocky */}
+      <rect x="30" y="50" width="45" height="40" fill={mood === "happy" ? "#84cc16" : "#a3e635"} stroke="#000" strokeWidth="3" />
+      {/* Cola pixel */}
+      <rect x="15" y="65" width="15" height="10" fill="#fb923c" stroke="#000" strokeWidth="2" />
     </svg>
   </div>
 );
@@ -167,10 +156,10 @@ export default function App() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(type === 'success' ? 600 : 150, ctx.currentTime);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-    osc.start(); osc.stop(ctx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(type === 'success' ? 800 : 100, ctx.currentTime);
+    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc.start(); osc.stop(ctx.currentTime + 0.1);
   };
 
   const missions = [
@@ -186,13 +175,13 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
-    // Bloquear interacción hasta que Felipe termine de leer la frase correcta
+    // El audio bloquea botones hasta que Felipe termina
     playTTS(q.sentence);
   };
 
   const handleWordClick = (word: string, index: number) => {
     if (isAudioLoading) return;
-    playTTS(word); // Pronunciar palabra al elegirla
+    playTTS(word);
     setState(s => {
       const newScramble = [...s.scrambleWords];
       newScramble.splice(index, 1);
@@ -213,11 +202,11 @@ export default function App() {
     const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
     if (state.selectedWords.join(' ') === currentQ.sentence) {
       playSystemSound('success');
-      playTTS("Perfect! Well done.");
+      playTTS("Awesome! Mission complete.");
       setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
     } else {
       playSystemSound('error');
-      playTTS("Try again!");
+      playTTS("Oh no! Let's try one more time.");
       prepareScramble(state.currentQuestionIndex);
     }
   };
@@ -226,29 +215,26 @@ export default function App() {
     setState(s => ({ ...s, isGeneratingPostcard: true }));
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const imgPromise = ai.models.generateContent({
+      const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A 3D voxel art postcard of a dinosaur named Felipe in a ${missionTitle} vacation. Bright colors.` }] },
+        contents: { parts: [{ text: `A blocky 3D voxel art postcard of a dinosaur at ${missionTitle}. Minecraft style.` }] },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
-      const textPromise = ai.models.generateContent({
+      const textRes = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Generate a 1-sentence diary entry in English for a child about a trip to ${missionTitle}. Use simple A1 English.`,
+        contents: `Simple 1-sentence diary in English for a kid about ${missionTitle}.`,
       });
-      const [imgRes, textRes] = await Promise.all([imgPromise, textPromise]);
       let imageUrl = "";
       const candidates = imgRes.candidates;
-      if (candidates && candidates[0] && candidates[0].content && candidates[0].content.parts) {
+      if (candidates && candidates[0]?.content?.parts) {
         for (const part of candidates[0].content.parts) {
           if (part.inlineData) { imageUrl = `data:image/png;base64,${part.inlineData.data}`; break; }
         }
       }
-      const diaryEntry = textRes.text || "I had a great trip!";
-      const accs: Accessory[] = ['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'];
       setState(s => ({ 
         ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
-        diaries: { ...s.diaries, [missionId]: diaryEntry },
-        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, accs[missionId-1]])),
+        diaries: { ...s.diaries, [missionId]: textRes.text || "Best trip ever!" },
+        unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, (['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'] as Accessory[])[missionId-1]])),
         isGeneratingPostcard: false 
       }));
     } catch (e) {
@@ -256,7 +242,7 @@ export default function App() {
     }
   };
 
-  // Lectura automática de diálogos
+  // Lectura de diálogos iniciales
   useEffect(() => {
     if (state.screen === 'playing' && state.activeMission < 5) {
       const currentMissionQs = QUESTIONS.filter(q => q.mission === state.activeMission);
@@ -267,13 +253,13 @@ export default function App() {
 
   if (state.screen === 'intro') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="voxel-card p-12 max-w-md w-full text-center border-sky-400 border-4">
-          <div className="flex justify-center mb-6"><VoxelFelipe isActive={true} accessory={state.equippedAccessory} /></div>
-          <h1 className="text-6xl font-black text-sky-600 uppercase mb-12 animate-text-wave">FELIPE QUEST</h1>
-          <div className="flex flex-col gap-4">
-            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="w-full roblox-btn py-6 text-2xl">START JOURNEY</button>
-            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="bg-white border-4 border-sky-900 text-sky-900 font-black py-4 uppercase text-sm">Album & Wardrobe</button>
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-mc-green/20">
+        <div className="mc-panel p-12 max-w-lg w-full text-center">
+          <h1 className="mc-logo mb-12">FELIPE<br/>QUEST</h1>
+          <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-48 h-48" accessory={state.equippedAccessory} /></div>
+          <div className="flex flex-col gap-6">
+            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">PLAY GAME</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY ALBUM</button>
           </div>
         </div>
       </div>
@@ -282,9 +268,9 @@ export default function App() {
 
   if (state.screen === 'mission_select') {
     return (
-      <div className="min-h-screen p-6 max-w-4xl mx-auto flex flex-col items-center">
-        <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-12">
+      <div className="min-h-screen p-6 flex flex-col items-center">
+        <h1 className="mc-logo mb-12 text-center text-3xl">FELIPE QUEST</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full max-w-5xl mb-12">
           {missions.map(m => (
             <button key={m.id} onClick={() => {
               if (m.id === 5) {
@@ -293,14 +279,14 @@ export default function App() {
               } else {
                 setState(s => ({ ...s, screen: 'playing', activeMission: m.id, currentQuestionIndex: 0, score: 0, userAnswer: '', showExplanation: false }));
               }
-            }} className="voxel-card p-8 text-center hover:scale-105 transition-all bg-white relative group">
-              {state.stamps.includes(m.id) && <div className="absolute top-2 right-2 text-xl">✅</div>}
-              <div className="text-6xl mb-4 group-hover:scale-110 transition-transform">{m.icon}</div>
-              <h3 className="text-xl font-black text-sky-700 uppercase">{m.title}</h3>
+            }} className="mc-panel p-8 hover:scale-105 transition-all text-center relative group">
+              {state.stamps.includes(m.id) && <div className="absolute top-2 right-2 text-2xl">✅</div>}
+              <div className="text-7xl mb-6 group-hover:scale-110 transition-transform">{m.icon}</div>
+              <h3 className="font-bold text-sky-900 uppercase tracking-widest text-lg">{m.title}</h3>
             </button>
           ))}
         </div>
-        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="text-sky-900 font-black uppercase text-xs">« BACK</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button text-xs">BACK TO MENU</button>
       </div>
     );
   }
@@ -309,45 +295,50 @@ export default function App() {
     if (state.activeMission === 5) {
       const q = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
       return (
-        <div className="min-h-screen flex flex-col items-center p-6 bg-yellow-50">
-          <header className="w-full max-w-2xl flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
-            <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
+        <div className="min-h-screen flex flex-col items-center p-6">
+          <header className="w-full max-w-3xl flex justify-between items-center mb-8">
+            <h1 className="mc-logo text-xl">FELIPE QUEST</h1>
+            <div className="mc-panel px-4 py-2 text-sky-900 font-bold">XP: {state.score}</div>
           </header>
-          <main className="w-full max-w-2xl voxel-card p-8 bg-white/95 relative">
+          
+          <main className="w-full max-w-3xl mc-panel p-10 relative">
             {isAudioLoading && (
               <div className="absolute top-4 right-4 flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-sky-900 border-t-transparent animate-spin rounded-full"></div>
-                <span className="mono text-[8px] font-black uppercase text-sky-900">Listening...</span>
+                <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full"></div>
+                <span className="text-[10px] font-bold text-black uppercase">Felipe Speaking...</span>
               </div>
             )}
-            <div className="flex justify-center mb-6"><VoxelFelipe isActive={state.showExplanation} mood={state.showExplanation ? "happy" : "thinking"} accessory={state.equippedAccessory} /></div>
-            <div className="bg-sky-50 p-6 border-2 border-dashed border-sky-200 mb-8 text-center">
-              <p className="text-2xl font-black italic text-sky-700">"{q.translation}"</p>
+            
+            <div className="flex items-start gap-6 mb-10">
+              <VoxelFelipe isActive={false} mood="thinking" accessory={state.equippedAccessory} />
+              <div className="chat-bubble flex-1 shadow-lg">
+                <p className="text-xl font-bold text-sky-700 italic">"Translate: {q.translation}"</p>
+              </div>
             </div>
-            {/* ESPACIO DE CONSTRUCCIÓN - MEJORADA VISIBILIDAD */}
-            <div className="min-h-[140px] bg-sky-100 border-4 border-sky-900 p-6 flex flex-wrap gap-3 mb-8 items-center justify-center rounded-2xl shadow-inner">
-              {state.selectedWords.length === 0 && <p className="text-sky-900/40 font-black uppercase">Felipe says the sentence... Listen!</p>}
+
+            {/* FRASE QUE SE ESTÁ CONSTRUYENDO - VISIBILIDAD MÁXIMA */}
+            <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
+              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe first...</p>}
               {state.selectedWords.map((w, i) => (
-                <button key={i} onClick={() => handleRemoveWord(w, i)} className="bg-summer-orange text-sky-900 px-5 py-3 font-black uppercase text-lg border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all">
+                <button key={i} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
                   {w}
                 </button>
               ))}
             </div>
-            {/* BOTONES DE OPCIONES - DESHABILITADOS DURANTE AUDIO */}
-            <div className="flex flex-wrap gap-3 justify-center mb-8">
+
+            {/* BOTONES DE OPCIONES */}
+            <div className="flex flex-wrap gap-4 justify-center mb-12">
               {state.scrambleWords.map((w, i) => (
                 <button key={i} disabled={isAudioLoading} onClick={() => handleWordClick(w, i)} 
-                  className={`bg-white text-sky-900 px-5 py-3 font-black uppercase border-4 border-sky-900 shadow-[4px_4px_0_#0c4a6e] transition-all
-                    ${isAudioLoading ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:shadow-none hover:translate-x-1 hover:translate-y-1'}
-                  `}>
+                  className="mc-button text-xs py-4 px-6">
                   {w}
                 </button>
               ))}
             </div>
+
             {state.showExplanation ? (
-              <div className="bg-tropical-green p-6 border-4 border-sky-900 text-sky-900 animate-in zoom-in">
-                <p className="text-2xl font-black uppercase mb-4 text-center">Excellent! ✨</p>
+              <div className="bg-[#55aa55] p-6 border-4 border-black text-white text-center animate-in zoom-in">
+                <h3 className="text-2xl font-bold mb-4 uppercase tracking-tighter">PERFECT! +20 XP</h3>
                 <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < SCRAMBLE_QUESTIONS.length) {
                     const next = state.currentQuestionIndex + 1;
@@ -355,14 +346,14 @@ export default function App() {
                     prepareScramble(next);
                   } else {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
-                    generateAIPostcard(5, "City Finale");
+                    generateAIPostcard(5, "The Metropolis");
                   }
-                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Next Challenge »</button>
+                }} className="mc-button bg-[#ffffff] text-black w-full">CONTINUE QUEST</button>
               </div>
             ) : (
               <button disabled={state.scrambleWords.length > 0 || isAudioLoading} onClick={checkScramble} 
-                className={`w-full py-6 text-2xl roblox-btn ${state.scrambleWords.length > 0 || isAudioLoading ? 'opacity-50 grayscale' : ''}`}>
-                CHECK
+                className="mc-button w-full py-6 text-lg bg-[#3498db] text-white">
+                CHECK SENTENCE
               </button>
             )}
           </main>
@@ -376,45 +367,50 @@ export default function App() {
 
     return (
       <div className="min-h-screen flex flex-col items-center p-6">
-        <header className="w-full max-w-2xl flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-black text-sky-900 italic">FELIPE QUEST</h1>
-          <div className="voxel-card px-4 py-2 bg-white font-black text-sky-900">XP: {state.score}</div>
+        <header className="w-full max-w-3xl flex justify-between items-center mb-8">
+          <h1 className="mc-logo text-xl">FELIPE QUEST</h1>
+          <div className="mc-panel px-4 py-2 text-sky-900 font-bold">XP: {state.score}</div>
         </header>
-        <main className="w-full max-w-2xl voxel-card p-8 bg-white relative">
-          <div className="flex justify-center mb-8"><VoxelFelipe isActive={state.showExplanation} accessory={state.equippedAccessory} /></div>
-          <div className="bg-sky-50 p-8 border-4 border-sky-900 rounded-3xl mb-10 relative shadow-inner">
-            <h3 className="text-2xl font-bold text-sky-900 text-center leading-relaxed">
-               {currentQ.text.split('________').map((part, i, arr) => (
-                  <React.Fragment key={i}>
-                    {part}{i < arr.length - 1 && <span className="text-summer-orange border-b-4 border-summer-orange px-2 font-black">{state.userAnswer || "...."}</span>}
-                  </React.Fragment>
-                ))}
-            </h3>
+        
+        <main className="w-full max-w-3xl mc-panel p-10">
+          <div className="flex items-start gap-8 mb-12">
+            <VoxelFelipe isActive={state.showExplanation} size="w-40 h-40" accessory={state.equippedAccessory} />
+            <div className="chat-bubble flex-1 shadow-lg">
+              <h3 className="text-2xl font-bold text-gray-800 leading-relaxed">
+                 {currentQ.text.split('________').map((part, i, arr) => (
+                    <React.Fragment key={i}>
+                      {part}{i < arr.length - 1 && <span className="text-orange-600 underline font-black decoration-4">{state.userAnswer || "..."}</span>}
+                    </React.Fragment>
+                  ))}
+              </h3>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
             {currentQ.options.map((opt, i) => (
               <button key={i} onClick={() => {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
-                  playTTS("Correct!");
+                  playTTS("Correct! You got it.");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
-                  playTTS("Oops!");
+                  playTTS("Oops, not that one.");
                 }
-              }} disabled={state.showExplanation} className={`p-5 border-4 font-black text-center uppercase text-xl transition-all ${
+              }} disabled={state.showExplanation} className={`mc-button text-sm py-6 ${
                   state.userAnswer === opt 
-                    ? (opt === currentQ.correctAnswer ? 'bg-tropical-green border-sky-900 scale-105' : 'bg-red-400 border-sky-900 scale-95') 
-                    : 'bg-white border-sky-900 hover:border-summer-orange hover:-translate-y-1'
+                    ? (opt === currentQ.correctAnswer ? 'bg-[#55aa55] text-white' : 'bg-[#aa0000] text-white') 
+                    : ''
                 }`}>
                 {opt}
               </button>
             ))}
           </div>
+
           {state.showExplanation && (
-            <div className="p-6 bg-sunny-yellow border-4 border-sky-900 text-sky-900 animate-in slide-in-from-bottom">
-              <p className="text-xl font-black italic text-center mb-4">"{currentQ.translation}"</p>
+            <div className="mc-panel p-6 bg-[#ffff55] border-black border-4 animate-in slide-in-from-bottom">
+              <p className="text-2xl font-bold text-black italic text-center mb-6">"{currentQ.translation}"</p>
               <button onClick={() => {
                   if (state.currentQuestionIndex + 1 < currentMissionQs.length) {
                     setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, userAnswer: '', showExplanation: false }));
@@ -422,7 +418,7 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, s.activeMission])) }));
                     generateAIPostcard(state.activeMission, missions.find(m => m.id === state.activeMission)?.title || "");
                   }
-                }} className="w-full bg-sky-900 text-white py-4 font-black uppercase">Continue »</button>
+                }} className="mc-button w-full bg-[#ffffff] text-black">NEXT MISSION »</button>
             </div>
           )}
         </main>
@@ -432,37 +428,37 @@ export default function App() {
 
   if (state.screen === 'passport') {
     return (
-      <div className="min-h-screen p-6 flex flex-col items-center bg-[#fefce8]">
-        <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
-        <div className="voxel-card p-10 w-full max-w-3xl bg-white mb-10">
+      <div className="min-h-screen p-8 flex flex-col items-center bg-[#8b8b8b]">
+        <h1 className="mc-logo mb-12 text-3xl">FELIPE QUEST</h1>
+        <div className="mc-panel p-12 w-full max-w-4xl bg-white mb-10">
           <div className="mb-12">
-            <h3 className="text-sm font-black text-sky-400 mb-6 uppercase tracking-widest">My Wardrobe</h3>
-            <div className="flex gap-4 overflow-x-auto pb-4">
+            <h3 className="font-bold text-sky-400 mb-6 uppercase tracking-widest text-lg">SKINS & ACCESSORIES</h3>
+            <div className="flex gap-6 overflow-x-auto pb-4">
               {state.unlockedAccessories.map(acc => (
                 <button key={acc} onClick={() => setState(s => ({ ...s, equippedAccessory: acc }))}
-                  className={`w-20 h-20 border-4 flex items-center justify-center text-4xl transition-all ${state.equippedAccessory === acc ? 'border-sky-900 bg-sunny-yellow scale-110 shadow-lg' : 'border-gray-100 opacity-60'}`}>
+                  className={`w-24 h-24 mc-panel flex items-center justify-center text-5xl transition-all ${state.equippedAccessory === acc ? 'bg-[#55ff55] scale-110' : 'bg-[#e0e0e0] opacity-50'}`}>
                   {{ none: "🦖", sunglasses: "🕶️", safari_hat: "🤠", pilot_headset: "🎧", party_ears: "🐭", camera: "📷" }[acc]}
                 </button>
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
             {missions.map(m => (
-              <div key={m.id} className={`voxel-card p-6 ${state.stamps.includes(m.id) ? 'border-sky-900' : 'opacity-20'}`}>
-                <div className="flex items-center gap-4 mb-4">
-                  <span className="text-4xl">{m.icon}</span>
-                  <h4 className="font-black text-sky-900 uppercase">{m.title}</h4>
+              <div key={m.id} className={`mc-panel p-8 ${state.stamps.includes(m.id) ? 'bg-[#ffffff]' : 'bg-[#888888] opacity-30'}`}>
+                <div className="flex items-center gap-6 mb-6">
+                  <span className="text-5xl">{m.icon}</span>
+                  <h4 className="font-bold text-black uppercase text-xl">{m.title}</h4>
                 </div>
                 {state.postcards[m.id] && (
                   <div>
-                    <img src={state.postcards[m.id]} className="w-full border-4 border-white shadow-lg mb-4" />
-                    <p className="text-xs italic font-bold text-sky-700 leading-relaxed">"{state.diaries[m.id]}"</p>
+                    <img src={state.postcards[m.id]} className="w-full border-4 border-black shadow-lg mb-4" />
+                    <p className="text-sm italic font-bold text-black leading-relaxed">"{state.diaries[m.id]}"</p>
                   </div>
                 )}
               </div>
             ))}
           </div>
-          <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="roblox-btn w-full py-5 text-2xl">BACK HOME</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'intro' }))} className="mc-button w-full py-6 text-xl">BACK TO HOME</button>
         </div>
       </div>
     );
@@ -470,25 +466,25 @@ export default function App() {
 
   if (state.screen === 'game_over') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-sky-100">
-        <div className="voxel-card p-12 text-center max-w-md w-full border-tropical-green border-4 bg-white">
-           <h1 className="text-6xl font-black text-sky-900 italic mb-12 uppercase">FELIPE QUEST</h1>
-           <h3 className="text-2xl font-black text-tropical-green mb-8 uppercase tracking-widest">MISSION COMPLETE!</h3>
-           <div className="mb-8 min-h-[250px] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[#34495e]">
+        <div className="mc-panel p-16 text-center max-w-lg w-full">
+           <h1 className="mc-logo mb-12 text-2xl">FELIPE QUEST</h1>
+           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase">QUEST UNLOCKED!</h3>
+           <div className="mb-10 min-h-[300px] flex items-center justify-center">
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
-                 <div className="w-12 h-12 border-4 border-sky-900 border-t-transparent animate-spin rounded-full mb-4"></div>
-                 <p className="font-black text-gray-400 text-xs">COLLECTING STAMP...</p>
+                 <div className="w-16 h-16 border-8 border-black border-t-transparent animate-spin rounded-full mb-6"></div>
+                 <p className="font-bold text-black tracking-widest text-xs">CRAFTING POSTCARD...</p>
                </div>
              ) : (
                <div className="animate-in zoom-in">
-                 {state.postcards[state.activeMission] && <img src={state.postcards[state.activeMission]} className="w-full border-4 border-white shadow-xl mb-4" />}
-                 <p className="text-sm font-bold text-sky-700 italic">"{state.diaries[state.activeMission]}"</p>
+                 {state.postcards[state.activeMission] && <img src={state.postcards[state.activeMission]} className="w-full border-4 border-black shadow-2xl mb-6" />}
+                 <p className="text-lg font-bold text-black italic">"{state.diaries[state.activeMission]}"</p>
                </div>
              )}
            </div>
-           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="roblox-btn w-full py-6 text-2xl mb-4">MY ALBUM</button>
-           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="text-sky-900 font-black uppercase text-xs tracking-widest">CONTINUE EXPLORING</button>
+           <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full py-6 text-xl mb-6">VIEW ALBUM</button>
+           <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="text-black font-bold uppercase text-xs tracking-widest">CONTINUE EXPLORING</button>
         </div>
       </div>
     );
@@ -496,4 +492,3 @@ export default function App() {
 
   return null;
 }
-
