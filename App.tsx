@@ -1,9 +1,8 @@
 
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
-import { GameState, GameScreen, VolumeSettings, Accessory } from './types';
+import { GameState, GameScreen, VolumeSettings, Accessory, Question } from './types';
 
 // Utility: decode base64
 function decodeBase64(base64: string) {
@@ -56,13 +55,13 @@ const VoxelFelipe = ({ isDancing, isSpeaking, isLoadingAudio }: { isDancing?: bo
 
 export default function App() {
   const [state, setState] = useState<GameState>(() => {
-    const saved = localStorage.getItem('felipe_quest_state');
+    const saved = localStorage.getItem('felipe_quest_state_v2');
     if (saved) return JSON.parse(saved);
     return {
       screen: 'intro', activeMission: 1, currentQuestionIndex: 0, userAnswer: '', attempts: 0, score: 0, coins: 0,
       errorsInMission: 0, missionStars: {}, isNight: false, feedbackType: 'none', showExplanation: false, stamps: [],
       unlockedAccessories: ['none'], equippedAccessory: 'none', scrambleWords: [], selectedWords: [], chatHistory: [],
-      volumeSettings: { bgm: 0.3, sfx: 0.5, voice: 1.0 }
+      volumeSettings: { bgm: 0.2, sfx: 0.5, voice: 1.0 }
     };
   });
 
@@ -74,7 +73,7 @@ export default function App() {
   const bgmRef = useRef<number | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('felipe_quest_state', JSON.stringify(state));
+    localStorage.setItem('felipe_quest_state_v2', JSON.stringify(state));
   }, [state]);
 
   const ensureAudioContext = async () => {
@@ -103,12 +102,12 @@ export default function App() {
   };
 
   const playCoinSound = () => {
-    playSynthNote(987, 0.1, 0.5);
-    setTimeout(() => playSynthNote(1318, 0.4, 0.5), 100);
+    playSynthNote(987, 0.1, 0.4);
+    setTimeout(() => playSynthNote(1318, 0.4, 0.4), 100);
   };
 
   const playErrorSound = () => {
-    playSynthNote(110, 0.3, 0.5);
+    playSynthNote(110, 0.3, 0.4);
   };
 
   const playTTS = async (text: string) => {
@@ -159,7 +158,7 @@ export default function App() {
         const gain = ctx.createGain();
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(melody[idx], ctx.currentTime);
-        gain.gain.setValueAtTime(state.volumeSettings.bgm * 0.1, ctx.currentTime);
+        gain.gain.setValueAtTime(state.volumeSettings.bgm * 0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -180,20 +179,24 @@ export default function App() {
       const q = currentMissionQs[state.currentQuestionIndex];
       if (q) {
         if (state.currentQuestionIndex < 5) {
-          setShuffledOptions(shuffle([q.correctAnswer, "Dog", "Blue", "Apple"]));
+          setShuffledOptions(shuffle(q.options));
         } else {
           setState(s => ({ ...s, scrambleWords: shuffle(q.correctAnswer.split(' ')), selectedWords: [] }));
         }
-        playTTS(q.text);
+        playTTS(state.currentQuestionIndex < 5 
+          ? `Listen carefully: ${q.correctAnswer}. Now, find the word on the screen.` 
+          : `Order the sentence: ${q.correctAnswer}`
+        );
       }
     }
   }, [state.screen, state.currentQuestionIndex, state.activeMission]);
 
   const handleCorrect = () => {
+    const q = currentMissionQs[state.currentQuestionIndex];
+    if (!q) return;
     playCoinSound();
     setState(s => ({ ...s, score: s.score + 10, coins: s.coins + 5, showExplanation: true }));
-    const q = currentMissionQs[state.currentQuestionIndex];
-    playTTS(`Correct! ${q.correctAnswer}`);
+    playTTS(`Awesome! The answer is: ${q.correctAnswer}`);
   };
 
   const handleWrong = () => {
@@ -204,7 +207,6 @@ export default function App() {
   const handleNext = async () => {
     await ensureAudioContext();
     if (state.currentQuestionIndex >= 9) {
-      // Calculate Stars
       let stars = 1;
       if (state.errorsInMission === 0) stars = 3;
       else if (state.errorsInMission <= 2) stars = 2;
@@ -214,55 +216,61 @@ export default function App() {
         screen: 'summary', 
         stamps: [...new Set([...s.stamps, s.activeMission])],
         missionStars: { ...s.missionStars, [s.activeMission]: stars },
-        coins: s.coins + (stars === 3 ? 50 : 20)
+        coins: s.coins + (stars === 3 ? 50 : stars === 2 ? 30 : 15)
       }));
     } else {
       setState(s => ({ ...s, currentQuestionIndex: s.currentQuestionIndex + 1, showExplanation: false }));
     }
   };
 
-  // --- Screens ---
-
+  // --- Header ---
   const Header = () => (
-    <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/50 border-4 border-black">
-      <button onClick={async () => { await ensureAudioContext(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="mario-button text-[8px] bg-red-600 text-white py-1 px-2">MAP</button>
+    <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/70 border-4 border-black">
+      <button onClick={async () => { await ensureAudioContext(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="mario-button text-[10px] bg-red-600 text-white py-2 px-3">MAP</button>
       <div className="flex items-center gap-4">
-        <span className="text-yellow-400 font-bold text-[14px]">🪙 {state.coins}</span>
-        <button onClick={() => setState(s => ({ ...s, screen: 'settings' }))} className="text-xl">⚙️</button>
+        <span className="text-yellow-400 font-bold text-[16px] drop-shadow-lg">🪙 {state.coins}</span>
+        <button onClick={() => setState(s => ({ ...s, screen: 'settings' }))} className="text-2xl hover:scale-110 transition-transform">⚙️</button>
       </div>
     </header>
   );
 
+  // --- Screens ---
+
   if (state.screen === 'intro') return (
     <div className="game-container justify-center bg-[#5c94fc]">
       <div className="mario-panel p-10 max-w-[480px] w-full text-center">
-        <h1 className="mc-logo text-xl mb-6 text-black">SUPER FELIPE XL</h1>
-        <VoxelFelipe isSpeaking={isFelipeSpeaking} isLoadingAudio={isLoadingAudio} />
+        <h1 className="mc-logo text-2xl mb-8 text-black leading-tight">SUPER FELIPE XL<br/><span className="text-[12px] block mt-2 text-blue-600">English Adventure</span></h1>
+        <div className="flex justify-center mb-8">
+          <VoxelFelipe isSpeaking={isFelipeSpeaking} isLoadingAudio={isLoadingAudio} />
+        </div>
         <button onClick={async () => { 
           await ensureAudioContext(); 
           startBGM();
           setState(s => ({ ...s, screen: 'mission_select' })); 
-        }} className="mario-button w-full mt-8 bg-green-500 text-white mc-logo">PRESS START</button>
+        }} className="mario-button w-full bg-green-500 text-white mc-logo py-8">START GAME</button>
       </div>
     </div>
   );
 
   if (state.screen === 'settings') return (
-    <div className="game-container bg-gray-800 p-6">
-      <div className="mario-panel p-8 w-full max-w-[400px]">
-        <h2 className="mc-logo text-center mb-6">SETTINGS</h2>
+    <div className="game-container bg-slate-900 p-6">
+      <div className="mario-panel p-8 w-full max-w-[420px]">
+        <h2 className="mc-logo text-center mb-10 text-xl underline">AUDIO SETTINGS</h2>
         {Object.entries(state.volumeSettings).map(([key, val]) => (
-          <div key={key} className="mb-4">
-            <label className="block text-xs font-bold uppercase mb-1">{key} VOLUME</label>
+          <div key={key} className="mb-8">
+            <div className="flex justify-between items-end mb-2">
+              <label className="text-[14px] font-bold uppercase">{key} VOLUME</label>
+              <span className="text-[10px] font-bold">{(val * 100).toFixed(0)}%</span>
+            </div>
             <input 
               type="range" min="0" max="1" step="0.1" 
               value={val} 
               onChange={(e) => setState(s => ({ ...s, volumeSettings: { ...s.volumeSettings, [key]: parseFloat(e.target.value) } }))}
-              className="w-full"
+              className="w-full h-4 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
           </div>
         ))}
-        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full bg-blue-500 text-white mt-4">BACK</button>
+        <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full bg-blue-500 text-white mt-4 py-4 mc-logo">SAVE & BACK</button>
       </div>
     </div>
   );
@@ -270,8 +278,8 @@ export default function App() {
   if (state.screen === 'mission_select') return (
     <div className="game-container bg-sky-400 p-6">
       <Header />
-      <h2 className="mc-logo text-black mb-6 text-center">WORLD MAP</h2>
-      <div className="grid grid-cols-2 gap-4 w-full max-w-[500px]">
+      <h2 className="mc-logo text-black mb-10 text-center text-xl tracking-widest drop-shadow-md">SELECT WORLD</h2>
+      <div className="grid grid-cols-2 gap-6 w-full max-w-[500px]">
         {Array.from({ length: 8 }).map((_, i) => {
           const mId = i + 1;
           const isUnlocked = mId === 1 || state.stamps.includes(mId - 1);
@@ -285,14 +293,14 @@ export default function App() {
                 await ensureAudioContext();
                 setState(s => ({ ...s, screen: 'playing', activeMission: mId, currentQuestionIndex: 0, showExplanation: false, errorsInMission: 0 }));
               }} 
-              className={`mario-panel p-4 flex flex-col items-center gap-2 relative ${isDone ? 'bg-yellow-100' : isUnlocked ? 'bg-white' : 'bg-gray-400 opacity-60'}`}
+              className={`mario-panel p-6 flex flex-col items-center gap-3 relative transition-all active:scale-95 ${isDone ? 'bg-yellow-100 border-yellow-600' : isUnlocked ? 'bg-white' : 'bg-gray-400 opacity-60 grayscale'}`}
             >
-              {!isUnlocked && <span className="absolute inset-0 flex items-center justify-center text-3xl">🔒</span>}
-              <span className="text-4xl">{missionIcons[i]}</span>
-              <span className="text-[9px] font-bold mc-logo">{missionTitles[i]}</span>
+              {!isUnlocked && <span className="absolute inset-0 flex items-center justify-center text-5xl z-10 opacity-80">🔒</span>}
+              <span className="text-5xl drop-shadow-md">{missionIcons[i]}</span>
+              <span className="text-[12px] font-bold mc-logo text-center h-10 flex items-center">{missionTitles[i]}</span>
               <div className="flex gap-1">
                 {Array.from({ length: 3 }).map((_, si) => (
-                  <span key={si} className={si < stars ? 'text-yellow-500' : 'text-gray-300'}>★</span>
+                  <span key={si} className={`text-xl ${si < stars ? 'text-yellow-500 drop-shadow-[1px_1px_0px_#000]' : 'text-gray-300'}`}>★</span>
                 ))}
               </div>
             </button>
@@ -310,49 +318,57 @@ export default function App() {
     return (
       <div className="game-container bg-emerald-600 p-4">
         <Header />
-        <div className="mario-panel w-full max-w-[500px] p-6 bg-white min-h-[550px] flex flex-col">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-bold text-xs uppercase tracking-tighter">Mission {state.activeMission}</span>
-            <div className="flex gap-1">
+        <div className="mario-panel w-full max-w-[500px] p-6 bg-white min-h-[600px] flex flex-col shadow-2xl">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b-4 border-black/10">
+            <span className="font-bold text-[10px] uppercase tracking-tighter bg-black text-white px-2 py-1">Mission {state.activeMission}</span>
+            <div className="flex gap-1.5">
               {currentMissionQs.map((_, i) => (
-                <div key={i} className={`w-2 h-2 border border-black ${i < state.currentQuestionIndex ? 'bg-green-500' : i === state.currentQuestionIndex ? 'bg-yellow-400 animate-pulse' : 'bg-gray-200'}`} />
+                <div key={i} className={`w-3 h-3 border-2 border-black ${i < state.currentQuestionIndex ? 'bg-green-500' : i === state.currentQuestionIndex ? 'bg-yellow-400 animate-pulse' : 'bg-gray-200'}`} />
               ))}
             </div>
           </div>
 
-          <div className="flex justify-center my-4">
+          <div className="flex justify-center mb-6">
             <VoxelFelipe isDancing={state.showExplanation} isSpeaking={isFelipeSpeaking} isLoadingAudio={isLoadingAudio} />
           </div>
           
-          <div className="bg-sky-50 p-4 border-2 border-black rounded-lg mb-4 text-center font-bold text-xl min-h-[100px] flex flex-col items-center justify-center shadow-inner">
-            <p className="text-gray-500 text-xs mb-1 uppercase">{isScramble ? 'Order the phrase:' : 'English Challenge:'}</p>
+          <div className="bg-sky-50 p-6 border-4 border-black rounded-xl mb-6 text-center font-bold text-2xl min-h-[140px] flex flex-col items-center justify-center shadow-inner relative">
+            <p className="text-gray-500 text-[10px] absolute top-2 uppercase tracking-widest">{isScramble ? 'Sentence Builder' : 'Vocab Challenge'}</p>
             {isScramble ? q.translation : q.text}
           </div>
 
-          <button onClick={() => playTTS(isScramble ? q.correctAnswer : q.text)} className="mario-button bg-yellow-400 py-2 mb-4 text-[10px] w-32 self-center">🔊 REPEAT</button>
+          <button 
+            onClick={() => playTTS(isScramble ? `Sentence: ${q.correctAnswer}` : `The word is: ${q.correctAnswer}`)} 
+            disabled={isLoadingAudio || isFelipeSpeaking}
+            className={`mario-button py-2 mb-6 text-[10px] w-40 self-center ${isLoadingAudio || isFelipeSpeaking ? 'bg-gray-200' : 'bg-yellow-400'}`}
+          >
+            🔊 LISTEN AGAIN
+          </button>
 
           {!isScramble ? (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4 flex-1">
               {shuffledOptions.map((o, i) => (
                 <button key={i} disabled={state.showExplanation} onClick={async () => {
                   await ensureAudioContext();
                   if (o === q.correctAnswer) handleCorrect();
                   else handleWrong();
-                }} className={`mario-button text-xs py-4 ${state.showExplanation && o === q.correctAnswer ? 'bg-green-400 border-green-800' : 'bg-white'}`}>{o}</button>
+                }} className={`mario-button text-[14px] py-6 flex items-center justify-center ${state.showExplanation && o === q.correctAnswer ? 'bg-green-400 border-green-900 scale-105' : 'bg-white'}`}>
+                  {o}
+                </button>
               ))}
             </div>
           ) : (
-            <div className="flex flex-col gap-4">
-              <div className="bg-gray-100 p-3 min-h-[80px] border-4 border-black border-dashed flex flex-wrap gap-2 items-center justify-center">
-                {state.selectedWords.length === 0 && <span className="text-gray-400 text-xs italic">Build the sentence...</span>}
+            <div className="flex flex-col gap-6 flex-1">
+              <div className="bg-gray-200 p-4 min-h-[100px] border-4 border-black border-dashed flex flex-wrap gap-2 items-center justify-center rounded-lg shadow-inner">
+                {state.selectedWords.length === 0 && <span className="text-gray-400 text-xs italic mc-logo opacity-50">Toca las palabras...</span>}
                 {state.selectedWords.map((w, i) => (
                   <button key={i} onClick={() => {
                     if (state.showExplanation) return;
                     setState(s => ({ ...s, scrambleWords: [...s.scrambleWords, w], selectedWords: s.selectedWords.filter((_, idx) => idx !== i) }));
-                  }} className="bg-white px-2 py-1 border-2 border-black text-xs font-bold hover:bg-red-50">{w}</button>
+                  }} className="bg-white px-3 py-2 border-2 border-black text-[12px] font-bold hover:bg-red-100 transition-colors shadow-sm">{w}</button>
                 ))}
               </div>
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex flex-wrap gap-3 justify-center">
                 {state.scrambleWords.map((w, i) => (
                   <button key={i} disabled={state.showExplanation} onClick={() => {
                     const newSelected = [...state.selectedWords, w];
@@ -362,17 +378,17 @@ export default function App() {
                       if (newSelected.join(' ') === q.correctAnswer) handleCorrect();
                       else handleWrong();
                     }
-                  }} className="mario-button text-[10px] py-3 px-4 bg-blue-100">{w}</button>
+                  }} className="mario-button text-[12px] py-4 px-5 bg-blue-100 border-blue-400 hover:bg-white">{w}</button>
                 ))}
               </div>
             </div>
           )}
 
           {state.showExplanation && (
-            <div className="mt-auto pt-4 border-t-4 border-black text-center animate-bounce">
-              <p className="text-sm font-bold text-blue-800 mb-1 uppercase tracking-widest italic">Nice!</p>
-              <p className="text-xs font-bold mb-3">"{q.translation}"</p>
-              <button onClick={handleNext} className="mario-button bg-blue-600 text-white w-full py-4 mc-logo text-xs">CONTINUE »</button>
+            <div className="mt-8 pt-6 border-t-8 border-black text-center animate-bounce">
+              <p className="text-[14px] font-black text-green-700 mb-2 uppercase tracking-tighter">✨ AMAZING! ✨</p>
+              <p className="text-xl font-bold mb-4 bg-yellow-100 inline-block px-4 py-2 border-2 border-black">"{q.correctAnswer}"</p>
+              <button onClick={handleNext} className="mario-button bg-blue-600 text-white w-full py-6 mc-logo text-[14px] shadow-[4px_4px_0px_#000]">CONTINUE »</button>
             </div>
           )}
         </div>
@@ -382,22 +398,23 @@ export default function App() {
 
   if (state.screen === 'summary') {
     const stars = state.missionStars[state.activeMission] || 0;
-    const bonus = stars === 3 ? 50 : 20;
+    const bonus = stars === 3 ? 50 : stars === 2 ? 30 : 15;
     return (
-      <div className="game-container justify-center bg-black/90">
-        <div className="mario-panel p-10 text-center max-w-[400px] w-full border-white">
-          <h2 className="mc-logo text-yellow-400 mb-4">MISSION CLEAR!</h2>
-          <div className="text-6xl mb-6">{PRIZES[state.activeMission - 1]?.icon}</div>
-          <div className="flex justify-center gap-2 mb-6">
+      <div className="game-container justify-center bg-black/95">
+        <div className="mario-panel p-10 text-center max-w-[440px] w-full border-white/50">
+          <h2 className="mc-logo text-yellow-400 mb-6 text-2xl tracking-tighter animate-pulse">WORLD CLEAR!</h2>
+          <div className="text-7xl mb-10 drop-shadow-[4px_4px_0px_#fff]">{PRIZES[state.activeMission - 1]?.icon}</div>
+          <div className="flex justify-center gap-4 mb-10">
             {Array.from({ length: 3 }).map((_, i) => (
-              <span key={i} className={`text-4xl ${i < stars ? 'text-yellow-500 animate-bounce' : 'text-gray-600'}`}>★</span>
+              <span key={i} className={`text-6xl ${i < stars ? 'text-yellow-500 animate-bounce' : 'text-gray-700'}`}>★</span>
             ))}
           </div>
-          <div className="bg-black/10 p-4 mb-6 border-2 border-black text-left text-xs font-bold">
-            <p className="flex justify-between"><span>ERRORS:</span> <span>{state.errorsInMission}</span></p>
-            <p className="flex justify-between text-yellow-600"><span>BONUS COINS:</span> <span>+{bonus}</span></p>
+          <div className="bg-white/10 p-6 mb-8 border-4 border-black text-left text-[14px] font-bold text-white uppercase tracking-widest">
+            <p className="flex justify-between mb-4 border-b-2 border-white/20 pb-2"><span>ERRORS:</span> <span className="text-red-400">{state.errorsInMission}</span></p>
+            <p className="flex justify-between text-yellow-400"><span>XP GAINED:</span> <span>+100</span></p>
+            <p className="flex justify-between text-yellow-400"><span>COIN BONUS:</span> <span>+{bonus}</span></p>
           </div>
-          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full bg-orange-500 text-white mc-logo">BACK TO MAP</button>
+          <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mario-button w-full bg-orange-500 text-white mc-logo py-6">BACK TO MAP</button>
         </div>
       </div>
     );
@@ -405,3 +422,4 @@ export default function App() {
 
   return null;
 }
+
