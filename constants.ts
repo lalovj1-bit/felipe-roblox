@@ -1,6 +1,14 @@
 
 import { Question, ScrambleQuestion } from './types';
 
+export const PRIZES = [
+  { id: 1, name: "Huevo de Bronce", icon: "🥚" },
+  { id: 2, name: "Estrella de Plata", icon: "⭐" },
+  { id: 3, name: "Corona de Oro", icon: "👑" },
+  { id: 4, name: "Gema de Diamante", icon: "💎" },
+  { id: 5, name: "Trofeo Dragón Supremo", icon: "🏆" }
+];
+
 export const QUESTIONS: Question[] = [
   // MUNDO 1: DINO LAND 🦖 (Niveles 1-4, 6-9)
   { id: 1, mission: 1, text: "The dinosaur is very ________.", options: ["big", "small", "blue", "fast"], correctAnswer: "big", hint: "Like an elephant!", translation: "El dinosaurio es muy grande.", explanation: "Big es grande." },
@@ -40,21 +48,11 @@ export const QUESTIONS: Question[] = [
   { id: 36, mission: 4, text: "The island is ________.", options: ["beautiful", "sad", "hungry", "angry"], correctAnswer: "beautiful", hint: "Very pretty.", translation: "La isla es hermosa.", explanation: "Beautiful es hermoso." },
   { id: 37, mission: 4, text: "The parrots can ________.", options: ["talk", "swim", "cook", "drive"], correctAnswer: "talk", hint: "They say hello!", translation: "Los loros pueden hablar.", explanation: "Talk es hablar." },
   { id: 38, mission: 4, text: "The sand is ________.", options: ["yellow", "purple", "blue", "green"], correctAnswer: "yellow", hint: "Color of the sun.", translation: "La arena es amarilla.", explanation: "Yellow es amarillo." },
-  { id: 39, mission: 4, text: "Swim in the ________.", options: ["sea", "street", "mountain", "park"], correctAnswer: "sea", hint: "The blue water.", translation: "Nada en el mar.", explanation: "Sea es mar." },
-
-  // MUNDO 5: STAR GALAXY 🌌
-  { id: 41, mission: 5, text: "The moon is ________.", options: ["white", "black", "red", "green"], correctAnswer: "white", hint: "Bright at night.", translation: "La luna es blanca.", explanation: "White es blanco." },
-  { id: 42, mission: 5, text: "I see a big ________.", options: ["planet", "house", "dog", "cat"], correctAnswer: "planet", hint: "Like Earth or Mars.", translation: "Veo un planeta grande.", explanation: "Planet es planeta." },
-  { id: 43, mission: 5, text: "The rocket is ________.", options: ["fast", "slow", "quiet", "small"], correctAnswer: "fast", hint: "Goes quickly.", translation: "El cohete es rápido.", explanation: "Fast es rápido." },
-  { id: 44, mission: 5, text: "Aliens have ________ skin.", options: ["green", "pink", "brown", "black"], correctAnswer: "green", hint: "Classic space color.", translation: "Los aliens tienen piel verde.", explanation: "Green es verde." },
-  { id: 46, mission: 5, text: "The stars are ________.", options: ["far", "near", "big", "blue"], correctAnswer: "far", hint: "Not close.", translation: "Las estrellas están lejos.", explanation: "Far es lejos." },
-  { id: 47, mission: 5, text: "I am an ________.", options: ["astronaut", "doctor", "chef", "teacher"], correctAnswer: "astronaut", hint: "Wears a space suit.", translation: "Soy un astronauta.", explanation: "Astronaut es astronauta." },
-  { id: 48, mission: 5, text: "Gravity is ________.", options: ["zero", "one", "ten", "hundred"], correctAnswer: "zero", hint: "You can float!", translation: "La gravedad es cero.", explanation: "Zero es cero." },
-  { id: 49, mission: 5, text: "Look through the ________.", options: ["telescope", "mirror", "window", "door"], correctAnswer: "telescope", hint: "See far away.", translation: "Mira por el telescopio.", explanation: "Telescope es telescopio." }
+  { id: 39, mission: 4, text: "Swim in the ________.", options: ["sea", "street", "mountain", "park"], correctAnswer: "sea", hint: "The blue water.", translation: "Nada en el mar.", explanation: "Sea es mar." }
 ];
 
 export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
-  // Misión 1
+  // Misión 1 (Puzzles niveles 5 y 10)
   { id: 1, sentence: "The green dinosaur eats pizza", translation: "El dinosaurio verde come pizza" },
   { id: 2, sentence: "I love the blue sky", translation: "Amo el cielo azul" },
   // Misión 2
@@ -66,7 +64,15 @@ export const SCRAMBLE_QUESTIONS: ScrambleQuestion[] = [
   // Misión 4
   { id: 7, sentence: "The pirate found the treasure", translation: "El pirata encontró el tesoro" },
   { id: 8, sentence: "Look at the pirate map", translation: "Mira el mapa pirata" },
-  // Misión 5
+  // Misión 5 (LOS 10 NIVELES SON PUZZLES)
   { id: 9, sentence: "Astronauts travel to the stars", translation: "Los astronautas viajan a las estrellas" },
-  { id: 10, sentence: "The rocket is very fast", translation: "El cohete es muy rápido" }
+  { id: 10, sentence: "The rocket is very fast", translation: "El cohete es muy rápido" },
+  { id: 11, sentence: "The moon is bright tonight", translation: "La luna brilla esta noche" },
+  { id: 12, sentence: "I can see the planets", translation: "Puedo ver los planetas" },
+  { id: 13, sentence: "The galaxy is very big", translation: "La galaxia es muy grande" },
+  { id: 14, sentence: "Mars is the red planet", translation: "Marte es el planeta rojo" },
+  { id: 15, sentence: "We live on planet Earth", translation: "Vivimos en el planeta Tierra" },
+  { id: 16, sentence: "The sun is a star", translation: "El sol es una estrella" },
+  { id: 17, sentence: "I want to be astronaut", translation: "Quiero ser un astronauta" },
+  { id: 18, sentence: "Gravity makes us float here", translation: "La gravedad nos hace flotar aquí" }
 ];
