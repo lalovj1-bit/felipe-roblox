@@ -62,47 +62,40 @@ const AccessoryLayer = ({ item }: { item: Accessory }) => {
   );
 };
 
-const VoxelFelipe = ({ isActive, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
-  <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'}`}>
+const VoxelFelipe = ({ isActive, isDancing, size = "w-32 h-32", mood = "normal", accessory = "none" }: { isActive: boolean, isDancing?: boolean, size?: string, mood?: "normal" | "happy" | "thinking", accessory?: Accessory }) => (
+  <div className={`relative ${size} flex items-center justify-center transition-all duration-300 ${isActive ? 'scale-110' : 'scale-100'} ${isDancing ? 'mc-dance' : ''}`}>
     <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_12px_rgba(0,0,0,0.6)]">
-      {/* PIERNAS (Pantalones Negros) */}
+      {/* PIERNAS */}
       <rect x="32" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
       <rect x="52" y="80" width="16" height="18" fill="#1a1a1a" stroke="#000" strokeWidth="2" />
-      
-      {/* ZAPATOS (Azul Oscuro) */}
       <rect x="32" y="94" width="16" height="6" fill="#0c4a6e" />
       <rect x="52" y="94" width="16" height="6" fill="#0c4a6e" />
 
-      {/* CUERPO (Camiseta Blanca con Logo Azul) */}
+      {/* CUERPO */}
       <rect x="30" y="45" width="40" height="35" fill="#FFFFFF" stroke="#000" strokeWidth="2" />
       <rect x="40" y="52" width="20" height="18" fill="#0c4a6e" />
       <rect x="44" y="56" width="12" height="10" fill="#FFFFFF" />
       
-      {/* BRAZOS (Skin + Puños Azules) */}
+      {/* BRAZOS */}
       <rect x="20" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
       <rect x="20" y="45" width="10" height="6" fill="#0c4a6e" />
-      
       <rect x="70" y="45" width="10" height="28" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
       <rect x="70" y="45" width="10" height="6" fill="#0c4a6e" />
 
-      {/* CABEZA (Skin Color) */}
+      {/* CABEZA */}
       <rect x="35" y="15" width="30" height="30" fill="#fbcfe8" stroke="#000" strokeWidth="2" />
-      
-      {/* PELO (Negro Blocky) */}
       <rect x="33" y="10" width="34" height="12" fill="#111" />
       <rect x="33" y="22" width="6" height="10" fill="#111" />
       <rect x="61" y="22" width="6" height="10" fill="#111" />
       <rect x="39" y="18" width="8" height="4" fill="#111" />
       <rect x="53" y="18" width="8" height="4" fill="#111" />
 
-      {/* OJOS (Minecraft Style) */}
       <rect x="40" y="30" width="4" height="6" fill="#0c4a6e" />
       <rect x="56" y="30" width="4" height="6" fill="#0c4a6e" />
       <rect x="40" y="32" width="1" height="2" fill="#fff" />
       <rect x="56" y="32" width="1" height="2" fill="#fff" />
       
-      {/* BOCA */}
-      {mood === "happy" ? (
+      {mood === "happy" || isDancing ? (
         <rect x="44" y="40" width="12" height="2" fill="#000" />
       ) : (
         <rect x="46" y="40" width="8" height="2" fill="#000" opacity="0.4" />
@@ -188,28 +181,29 @@ export default function App() {
     if (!ctx) return;
     
     if (type === 'success') {
-      // Fanfarria de felicitación LARGA y festiva (Melodía ascendente compleja)
-      const playNote = (freq: number, startTime: number, duration: number, type: OscillatorType = 'sine') => {
+      // Melodía Mario Bros Level Up (8-bit square waves)
+      const playNote = (freq: number, startTime: number, duration: number) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = type;
+        osc.type = 'square';
         osc.connect(gain); gain.connect(ctx.destination);
         osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
         gain.gain.setValueAtTime(0, ctx.currentTime + startTime);
-        gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + startTime + 0.05);
+        gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + startTime + 0.01);
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startTime + duration);
         osc.start(ctx.currentTime + startTime);
         osc.stop(ctx.currentTime + startTime + duration);
       };
 
-      // Melodía tipo "Win" épica
-      playNote(261.63, 0, 0.2);     // Do
-      playNote(329.63, 0.15, 0.2);  // Mi
-      playNote(392.00, 0.3, 0.2);   // Sol
-      playNote(523.25, 0.45, 0.3);  // Do (Octava)
-      playNote(523.25, 0.75, 0.15); // Do
-      playNote(587.33, 0.9, 0.15);  // Re
-      playNote(659.25, 1.05, 0.8, 'square'); // Mi final épico
+      // Secuencia rápida tipo Mario
+      const tempo = 0.12;
+      playNote(659.25, 0 * tempo, 0.1); // Mi
+      playNote(659.25, 1 * tempo, 0.1); // Mi
+      playNote(659.25, 2 * tempo, 0.1); // Mi
+      playNote(523.25, 3 * tempo, 0.1); // Do
+      playNote(659.25, 4 * tempo, 0.1); // Mi
+      playNote(783.99, 6 * tempo, 0.15); // Sol
+      playNote(392.00, 8 * tempo, 0.2); // Sol bajo
     } else {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -234,6 +228,7 @@ export default function App() {
     if (!q) return;
     const words = q.sentence.split(' ').sort(() => Math.random() - 0.5);
     setState(s => ({ ...s, scrambleWords: words, selectedWords: [], showExplanation: false }));
+    // El audio bloquea botones estrictamente ahora
     playTTS(q.sentence);
   };
 
@@ -260,11 +255,11 @@ export default function App() {
     const currentQ = SCRAMBLE_QUESTIONS[state.currentQuestionIndex];
     if (state.selectedWords.join(' ') === currentQ.sentence) {
       playSystemSound('success');
-      playTTS("Incredible! You are a master.");
+      playTTS("Perfect! You solved it.");
       setState(s => ({ ...s, score: s.score + 20, showExplanation: true }));
     } else {
       playSystemSound('error');
-      playTTS("Not quite. Let's try again.");
+      playTTS("Not correct. Try one more time.");
       prepareScramble(state.currentQuestionIndex);
     }
   };
@@ -275,7 +270,7 @@ export default function App() {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const imgRes = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `A voxel 3D Minecraft scene postcard of a kid at ${missionTitle}. High contrast, cinematic lighting, blocky style.` }] },
+        contents: { parts: [{ text: `A vibrant voxel 3D Minecraft scene postcard of a kid at ${missionTitle}. Cinematic lighting, blocky art style.` }] },
         config: { imageConfig: { aspectRatio: "1:1" } }
       });
       const textRes = await ai.models.generateContent({
@@ -291,7 +286,7 @@ export default function App() {
       }
       setState(s => ({ 
         ...s, postcards: { ...s.postcards, [missionId]: imageUrl },
-        diaries: { ...s.diaries, [missionId]: textRes.text || "Best day of my life!" },
+        diaries: { ...s.diaries, [missionId]: textRes.text || "This was amazing!" },
         unlockedAccessories: Array.from(new Set([...s.unlockedAccessories, (['sunglasses', 'safari_hat', 'pilot_headset', 'party_ears', 'camera'] as Accessory[])[missionId-1]])),
         isGeneratingPostcard: false 
       }));
@@ -315,7 +310,7 @@ export default function App() {
           <h1 className="mc-logo mb-12">FELIPE<br/>QUEST</h1>
           <div className="flex justify-center mb-12"><VoxelFelipe isActive={true} size="w-56 h-56" accessory={state.equippedAccessory} /></div>
           <div className="flex flex-col gap-6">
-            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">START THE QUEST</button>
+            <button onClick={() => setState(s => ({ ...s, screen: 'mission_select' }))} className="mc-button w-full text-xl py-6">PLAY GAME</button>
             <button onClick={() => setState(s => ({ ...s, screen: 'passport' }))} className="mc-button w-full bg-[#f1c40f] text-black border-yellow-600">MY TRAVELS</button>
           </div>
         </div>
@@ -362,21 +357,21 @@ export default function App() {
             {isAudioLoading && (
               <div className="absolute top-4 right-4 flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-full"></div>
-                <span className="text-[10px] font-bold text-black uppercase">Voice Active...</span>
+                <span className="text-[10px] font-bold text-black uppercase">Felipe Speaking...</span>
               </div>
             )}
             
             <div className="flex items-start gap-6 mb-10">
               <VoxelFelipe isActive={false} mood="thinking" accessory={state.equippedAccessory} />
               <div className="chat-bubble flex-1 shadow-lg">
-                <p className="text-xl font-bold text-sky-700 italic">"Can you translate this: {q.translation}?"</p>
+                <p className="text-xl font-bold text-sky-700 italic">"Listen and translate: {q.translation}"</p>
               </div>
             </div>
 
             <div className="min-h-[140px] bg-black/10 border-4 border-dashed border-black/30 p-8 flex flex-wrap gap-4 mb-10 items-center justify-center rounded-lg">
-              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Felipe is speaking... Listen!</p>}
+              {state.selectedWords.length === 0 && <p className="text-black/30 font-bold uppercase tracking-widest">Listen to Felipe first...</p>}
               {state.selectedWords.map((w, i) => (
-                <button key={i} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
+                <button key={i} disabled={isAudioLoading} onClick={() => handleRemoveWord(w, i)} className="word-tag transform hover:scale-110 transition-transform">
                   {w}
                 </button>
               ))}
@@ -401,7 +396,7 @@ export default function App() {
                     prepareScramble(next);
                   } else {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, 5])) }));
-                    generateAIPostcard(5, "Dinosaur Valley");
+                    generateAIPostcard(5, "Dinosaur World");
                   }
                 }} className="mc-button bg-[#ffffff] text-black w-full">NEXT LEVEL »</button>
               </div>
@@ -447,11 +442,11 @@ export default function App() {
                 const isCorrect = opt === currentQ.correctAnswer;
                 if (isCorrect) {
                   playSystemSound('success');
-                  playTTS("Correct! Perfect job.");
+                  playTTS("That's it! Well done.");
                   setState(s => ({ ...s, userAnswer: opt, score: s.score + 10, showExplanation: true }));
                 } else {
                   playSystemSound('error');
-                  playTTS("Oops! Choose another one.");
+                  playTTS("Not quite. Try another one.");
                 }
               }} disabled={state.showExplanation} className={`mc-button text-sm py-6 ${
                   state.userAnswer === opt 
@@ -473,7 +468,7 @@ export default function App() {
                     setState(s => ({ ...s, screen: 'game_over', stamps: Array.from(new Set([...s.stamps, s.activeMission])) }));
                     generateAIPostcard(state.activeMission, missions.find(m => m.id === state.activeMission)?.title || "");
                   }
-                }} className="mc-button w-full bg-[#ffffff] text-black">CONTINUE JOURNEY »</button>
+                }} className="mc-button w-full bg-[#ffffff] text-black">CONTINUE QUEST »</button>
             </div>
           )}
         </main>
@@ -524,7 +519,7 @@ export default function App() {
       <div className="min-h-screen flex items-center justify-center p-6 bg-[#34495e]">
         <div className="mc-panel p-16 text-center max-w-lg w-full">
            <h1 className="mc-logo mb-12 text-2xl">FELIPE QUEST</h1>
-           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase">QUEST UNLOCKED!</h3>
+           <h3 className="text-3xl font-bold text-[#55aa55] mb-10 uppercase">MISSION UNLOCKED!</h3>
            <div className="mb-10 min-h-[300px] flex items-center justify-center">
              {state.isGeneratingPostcard ? (
                <div className="flex flex-col items-center">
@@ -532,7 +527,11 @@ export default function App() {
                  <p className="font-bold text-black tracking-widest text-xs">COLLECTING STAMP...</p>
                </div>
              ) : (
-               <div className="animate-in zoom-in">
+               <div className="flex flex-col items-center animate-in zoom-in">
+                 <div className="mb-10">
+                   {/* EL LOGO BAILANDO CON EL PERSONAJE */}
+                   <VoxelFelipe isActive={true} isDancing={true} size="w-56 h-56" accessory={state.equippedAccessory} mood="happy" />
+                 </div>
                  {state.postcards[state.activeMission] && <img src={state.postcards[state.activeMission]} className="w-full border-4 border-black shadow-2xl mb-6" />}
                  <p className="text-lg font-bold text-black italic">"{state.diaries[state.activeMission]}"</p>
                </div>
