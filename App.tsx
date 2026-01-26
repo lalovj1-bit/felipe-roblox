@@ -1,8 +1,8 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { QUESTIONS, PRIZES, FELIPE_SYSTEM_PROMPT } from './constants';
-import { GameState, GameScreen, VolumeSettings, Accessory, Question } from './types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { FELIPE_SYSTEM_PROMPT, PRIZES, QUESTIONS } from './constants';
+import { Accessory, GameScreen, GameState, Question, VolumeSettings } from './types';
 
 // Utility: decode base64
 function decodeBase64(base64: string) {
@@ -70,6 +70,7 @@ export default function App() {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
+  const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const bgmRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -113,8 +114,16 @@ export default function App() {
   const playTTS = async (text: string) => {
     if (!text) return;
     try {
+      // Detener audio anterior si existe
+      if (currentSourceRef.current) {
+        currentSourceRef.current.stop();
+        currentSourceRef.current = null;
+      }
+
       const ctx = await ensureAudioContext();
       setIsLoadingAudio(true);
+      setIsFelipeSpeaking(false);
+
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -125,7 +134,13 @@ export default function App() {
         },
       });
 
-      const audioPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+      const candidate = response.candidates?.[0];
+      if (!candidate || !candidate.content?.parts) {
+        setIsLoadingAudio(false);
+        return;
+      }
+
+      const audioPart = candidate.content.parts.find(p => p.inlineData);
       if (audioPart?.inlineData?.data) {
         const audioBuffer = await decodeAudioData(decodeBase64(audioPart.inlineData.data), ctx, 24000, 1);
         const source = ctx.createBufferSource();
@@ -134,9 +149,16 @@ export default function App() {
         source.buffer = audioBuffer; 
         source.connect(gain);
         gain.connect(ctx.destination);
+        
+        currentSourceRef.current = source;
         setIsLoadingAudio(false);
         setIsFelipeSpeaking(true);
-        source.onended = () => setIsFelipeSpeaking(false);
+        
+        source.onended = () => {
+          setIsFelipeSpeaking(false);
+          currentSourceRef.current = null;
+        };
+        
         source.start();
       } else {
         setIsLoadingAudio(false);
@@ -144,29 +166,41 @@ export default function App() {
     } catch (error) {
       console.error("TTS Error:", error);
       setIsLoadingAudio(false);
+      setIsFelipeSpeaking(false);
     }
   };
 
   const startBGM = async () => {
     const ctx = await ensureAudioContext();
     if (bgmRef.current) return;
-    const melody = [261, 329, 392, 523, 392, 329];
+
+    const melody = [
+      659, 659, 0, 659, 0, 523, 659, 0, 783, 0, 392, 0,
+      523, 392, 329, 440, 493, 466, 440,
+      392, 659, 783, 880, 698, 783, 
+      659, 523, 587, 493
+    ];
+    
     let idx = 0;
     bgmRef.current = window.setInterval(() => {
       if (state.screen !== 'intro' && ctx.state === 'running') {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(melody[idx], ctx.currentTime);
-        gain.gain.setValueAtTime(state.volumeSettings.bgm * 0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.4);
+        const freq = melody[idx];
+        if (freq > 0) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime);
+          const vol = state.volumeSettings.bgm * 0.1;
+          gain.gain.setValueAtTime(vol, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.2);
+        }
         idx = (idx + 1) % melody.length;
       }
-    }, 500);
+    }, 150);
   };
 
   const currentMissionQs = useMemo(() => 
@@ -223,7 +257,6 @@ export default function App() {
     }
   };
 
-  // --- Header ---
   const Header = () => (
     <header className="w-full max-w-[500px] flex justify-between items-center p-4 mb-4 bg-black/70 border-4 border-black">
       <button onClick={async () => { await ensureAudioContext(); setState(s => ({ ...s, screen: 'mission_select' })); }} className="mario-button text-[10px] bg-red-600 text-white py-2 px-3">MAP</button>
@@ -233,8 +266,6 @@ export default function App() {
       </div>
     </header>
   );
-
-  // --- Screens ---
 
   if (state.screen === 'intro') return (
     <div className="game-container justify-center bg-[#5c94fc]">
@@ -260,11 +291,12 @@ export default function App() {
           <div key={key} className="mb-8">
             <div className="flex justify-between items-end mb-2">
               <label className="text-[14px] font-bold uppercase">{key} VOLUME</label>
-              <span className="text-[10px] font-bold">{(val * 100).toFixed(0)}%</span>
+              {/* Fix: Explicitly cast 'val' to 'number' to satisfy arithmetic requirements on line 294 */}
+              <span className="text-[10px] font-bold">{((val as number) * 100).toFixed(0)}%</span>
             </div>
             <input 
               type="range" min="0" max="1" step="0.1" 
-              value={val} 
+              value={val as number} 
               onChange={(e) => setState(s => ({ ...s, volumeSettings: { ...s.volumeSettings, [key]: parseFloat(e.target.value) } }))}
               className="w-full h-4 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
@@ -340,9 +372,9 @@ export default function App() {
           <button 
             onClick={() => playTTS(isScramble ? `Sentence: ${q.correctAnswer}` : `The word is: ${q.correctAnswer}`)} 
             disabled={isLoadingAudio || isFelipeSpeaking}
-            className={`mario-button py-2 mb-6 text-[10px] w-40 self-center ${isLoadingAudio || isFelipeSpeaking ? 'bg-gray-200' : 'bg-yellow-400'}`}
+            className={`mario-button py-2 mb-6 text-[10px] w-40 self-center ${isLoadingAudio || isFelipeSpeaking ? 'bg-gray-200 cursor-not-allowed opacity-50' : 'bg-yellow-400'}`}
           >
-            🔊 LISTEN AGAIN
+            {isFelipeSpeaking ? '📢 SPEAKING...' : '🔊 LISTEN AGAIN'}
           </button>
 
           {!isScramble ? (
@@ -388,7 +420,17 @@ export default function App() {
             <div className="mt-8 pt-6 border-t-8 border-black text-center animate-bounce">
               <p className="text-[14px] font-black text-green-700 mb-2 uppercase tracking-tighter">✨ AMAZING! ✨</p>
               <p className="text-xl font-bold mb-4 bg-yellow-100 inline-block px-4 py-2 border-2 border-black">"{q.correctAnswer}"</p>
-              <button onClick={handleNext} className="mario-button bg-blue-600 text-white w-full py-6 mc-logo text-[14px] shadow-[4px_4px_0px_#000]">CONTINUE »</button>
+              <button 
+                disabled={isFelipeSpeaking || isLoadingAudio}
+                onClick={handleNext} 
+                className={`mario-button w-full py-6 mc-logo text-[14px] shadow-[4px_4px_0px_#000] transition-all ${
+                  (isFelipeSpeaking || isLoadingAudio) 
+                    ? 'bg-gray-400 cursor-not-allowed grayscale opacity-70' 
+                    : 'bg-blue-600 text-white'
+                }`}
+              >
+                {isFelipeSpeaking ? '📢 FELIPE IS TALKING...' : 'CONTINUE »'}
+              </button>
             </div>
           )}
         </div>
@@ -419,7 +461,3 @@ export default function App() {
       </div>
     );
   }
-
-  return null;
-}
-
