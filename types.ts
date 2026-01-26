@@ -8,23 +8,10 @@ export interface Question {
   hint: string;
   explanation: string;
   translation: string;
+  type?: 'mcq' | 'writing' | 'scramble';
 }
 
-export interface ScrambleQuestion {
-  id: number;
-  sentence: string;
-  translation: string;
-}
-
-export type FeedbackType = 'none' | 'success' | 'hint' | 'error';
-export type GameScreen = 'intro' | 'mission_select' | 'playing' | 'summary' | 'passport' | 'chat' | 'settings';
-
-export type Accessory = 'none' | 'sunglasses' | 'safari_hat' | 'pilot_headset' | 'party_ears' | 'camera';
-
-export interface ChatMessage {
-  role: 'user' | 'felipe';
-  text: string;
-}
+export type GameScreen = 'intro' | 'mission_select' | 'playing' | 'summary' | 'settings' | 'shelf';
 
 export interface VolumeSettings {
   bgm: number;
@@ -41,16 +28,12 @@ export interface GameState {
   score: number;
   coins: number;
   errorsInMission: number;
-  missionStars: Record<number, number>; // missionId -> 1, 2, o 3 estrellas
+  missionStars: Record<number, number>;
   isNight: boolean;
-  feedbackType: FeedbackType;
+  feedbackType: 'none' | 'success' | 'error';
   showExplanation: boolean;
-  stamps: number[]; // IDs de misiones completadas
-  unlockedAccessories: Accessory[];
-  equippedAccessory: Accessory;
+  stamps: number[];
   scrambleWords: string[];
   selectedWords: string[];
-  chatHistory: ChatMessage[];
   volumeSettings: VolumeSettings;
 }
-
