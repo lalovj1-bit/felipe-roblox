@@ -291,7 +291,6 @@ export default function App() {
           <div key={key} className="mb-8">
             <div className="flex justify-between items-end mb-2">
               <label className="text-[14px] font-bold uppercase">{key} VOLUME</label>
-              {/* Fix: Explicitly cast 'val' to 'number' to satisfy arithmetic requirements on line 294 */}
               <span className="text-[10px] font-bold">{((val as number) * 100).toFixed(0)}%</span>
             </div>
             <input 
@@ -461,3 +460,6 @@ export default function App() {
       </div>
     );
   }
+
+  return null;
+}
